@@ -1,0 +1,64 @@
+import os
+from fastapi import APIRouter, File, Form, UploadFile, HTTPException, Header
+from supabase import create_client, Client
+from dotenv import load_dotenv
+from services.pdf_parser import extract_transactions
+from services.categorizer import categorize_transactions
+from models.schemas import UploadResponse, CategorizedTransaction
+
+load_dotenv()
+
+router = APIRouter()
+
+
+def _get_supabase() -> Client:
+    url = os.environ["SUPABASE_URL"]
+    key = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
+    return create_client(url, key)
+
+
+@router.post("/upload-statement", response_model=UploadResponse)
+async def upload_statement(
+    file: UploadFile = File(...),
+    password: str = Form(""),          # empty string = no password
+    authorization: str = Header(...),  # Bearer <supabase JWT>
+):
+    # 1. Authenticate user via Supabase JWT
+    supabase = _get_supabase()
+    jwt = authorization.removeprefix("Bearer ").strip()
+    user_resp = supabase.auth.get_user(jwt)
+    if not user_resp.user:
+        raise HTTPException(status_code=401, detail="Invalid auth token.")
+    user_id = str(user_resp.user.id)
+
+    # 2. Read PDF bytes in memory — never write to disk
+    pdf_bytes = await file.read()
+
+    # 3. Decrypt + parse
+    try:
+        transactions = extract_transactions(pdf_bytes, password or None)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+    # 4. Auto-categorize
+    categorized = await categorize_transactions(transactions)
+
+    # 5. Look up category UUIDs from DB
+    cats_resp = supabase.table("categories").select("id, name").execute()
+    cat_map: dict[str, str] = {row["name"]: row["id"] for row in cats_resp.data}
+    other_id = cat_map.get("Other")
+
+    # 6. Bulk-insert transactions
+    rows = [
+        {
+            "user_id":          user_id,
+            "transaction_date": str(ct.transaction_date),
+            "description":      ct.description,
+            "amount":           ct.amount,
+            "category_id":      cat_map.get(ct.category_name, other_id),
+        }
+        for ct in categorized
+    ]
+    supabase.table("transactions").insert(rows).execute()
+
+    return UploadResponse(inserted=len(rows), transactions=categorized)
