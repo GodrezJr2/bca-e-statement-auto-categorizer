@@ -21,7 +21,8 @@ insert into categories (name, type) values
   ('Entertainment','Expense'),
   ('Transfer',     'Expense'),
   ('Income',       'Income'),
-  ('Other',        'Expense');
+  ('Other',        'Expense')
+on conflict (name) do nothing;
 
 -- transactions table
 create table transactions (
@@ -29,9 +30,10 @@ create table transactions (
   user_id          uuid not null references auth.users(id) on delete cascade,
   transaction_date date not null,
   description      text not null,
-  amount           numeric(18, 2) not null,
+  amount           numeric(18, 2) not null,   -- negative = debit, positive = credit
   category_id      uuid references categories(id),
-  created_at       timestamptz default now()
+  created_at       timestamptz default now(),
+  updated_at       timestamptz default now()
 );
 
 -- Indexes
@@ -55,7 +57,8 @@ create policy "transactions_insert_own"
 
 create policy "transactions_update_own"
   on transactions for update
-  using (auth.uid() = user_id);
+  using     (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
 
 create policy "transactions_delete_own"
   on transactions for delete
