@@ -11,10 +11,19 @@ load_dotenv()
 router = APIRouter()
 
 
+# Service role key is required to call auth.get_user() and to insert rows
+# on behalf of the authenticated user (RLS is enforced via user_id from JWT).
+_supabase: Client | None = None
+
+
 def _get_supabase() -> Client:
-    url = os.environ["SUPABASE_URL"]
-    key = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
-    return create_client(url, key)
+    global _supabase
+    if _supabase is None:
+        _supabase = create_client(
+            os.environ["SUPABASE_URL"],
+            os.environ["SUPABASE_SERVICE_ROLE_KEY"],
+        )
+    return _supabase
 
 
 @router.post("/upload-statement", response_model=UploadResponse)
@@ -38,7 +47,10 @@ async def upload_statement(
     try:
         transactions = extract_transactions(pdf_bytes, password or None)
     except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+        msg = str(e)
+        if "password" in msg.lower():
+            raise HTTPException(status_code=422, detail="Incorrect PDF password.")
+        raise HTTPException(status_code=422, detail="Could not parse the PDF. Check the file format.")
 
     # 4. Auto-categorize
     categorized = await categorize_transactions(transactions)
@@ -47,6 +59,8 @@ async def upload_statement(
     cats_resp = supabase.table("categories").select("id, name").execute()
     cat_map: dict[str, str] = {row["name"]: row["id"] for row in cats_resp.data}
     other_id = cat_map.get("Other")
+    if other_id is None:
+        raise HTTPException(status_code=500, detail="Category table is missing the 'Other' seed row.")
 
     # 6. Bulk-insert transactions
     rows = [
