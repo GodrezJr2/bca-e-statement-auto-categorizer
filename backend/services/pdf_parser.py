@@ -9,14 +9,10 @@ import pdfplumber
 from models.schemas import Transaction
 
 
-MONTH_MAP = {
-    'JANUARI': 1, 'FEBRUARI': 2, 'MARET': 3, 'APRIL': 4,
-    'MEI': 5, 'JUNI': 6, 'JULI': 7, 'AGUSTUS': 8,
-    'SEPTEMBER': 9, 'OKTOBER': 10, 'NOVEMBER': 11, 'DESEMBER': 12,
-}
-
 _TX_START    = re.compile(r'^\d{2}/\d{2}\s')
 _AMOUNT_RE   = re.compile(r'([\d,]+\.\d{2})')
+# BCA QR/virtual card lines: continuation lines contain "00000.00MERCHANTNAME"
+# where 00000.00 is the virtual card placeholder; text after it is the merchant
 _MERCHANT_RE = re.compile(r'00000\.00(.+)')
 _PERIOD_RE   = re.compile(r'PERIODE\s*:\s*(\w+)\s+(\d{4})')
 
@@ -25,10 +21,10 @@ _SKIP_EXACT = {
     'TANGGAL KETERANGAN CBG MUTASI SALDO',
 }
 _SKIP_STARTS = (
-    'REKENING', 'KCP ', 'JAYSON', 'MEDAN ', 'RT000', 'COMP.',
-    'CATATAN', 'Apabila', 'telah ', 'BCA berhak', 'SALDO AWAL :',
-    'MUTASI CR', 'MUTASI DB', 'SALDO AKHIR', 'INDONESIA', 'Rekening', 'Laporan',
-    'NO. REKENING', 'HALAMAN',
+    'REKENING', 'KCP ', 'RT000', 'COMP.',
+    'CATATAN', 'Apabila', 'telah ', 'BCA berhak',
+    'SALDO AWAL :', 'MUTASI CR', 'MUTASI DB', 'SALDO AKHIR',
+    'INDONESIA', 'Rekening', 'Laporan', 'NO. REKENING', 'HALAMAN',
 )
 
 
@@ -56,8 +52,8 @@ def _open_pdf(pdf_bytes: bytes, password: Optional[str]) -> io.BytesIO:
             return out
     except pikepdf.PasswordError:
         raise ValueError("Incorrect PDF password.")
-    except Exception:
-        # PDF may not actually be encrypted — return original bytes
+    except pikepdf.PdfError:
+        # PDF is not encrypted or uses unsupported encryption — pass through
         return buf
 
 

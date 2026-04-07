@@ -10,10 +10,7 @@ class Transaction(BaseModel):
     balance: Optional[float] = None
 
 
-class CategorizedTransaction(BaseModel):
-    transaction_date: date
-    description: str
-    amount: float
+class CategorizedTransaction(Transaction):
     category_name: str
 
 
