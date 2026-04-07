@@ -60,7 +60,8 @@ async def categorize_transactions(
         descs = [t.description for t in batch]
         try:
             cats = await _call_gemini(descs)
-        except Exception:
+        except Exception as e:
+            print(f"[categorizer] Gemini batch {i//50 + 1} failed: {e}. Falling back to 'Other'.")
             cats = []
 
         # Safety: wrong length or bad values → fall back to "Other"
