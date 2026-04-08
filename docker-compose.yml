@@ -1,0 +1,40 @@
+services:
+
+  # ── FastAPI backend ──────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+    ports:
+      - "8000:8000"           # host:container — does not conflict with CasaOS
+    environment:
+      - SUPABASE_URL=${SUPABASE_URL:-https://your-project.supabase.co}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY:-your-service-role-key}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-your-gemini-api-key}
+      - LLM_PROVIDER=${LLM_PROVIDER:-gemini}
+      # Allow both the local frontend container and the browser on your LAN.
+      # Set SERVER_IP to your home server's local IP, e.g. 192.168.1.10
+      - CORS_ORIGINS=http://frontend:3000,http://localhost:3000,http://${SERVER_IP:-localhost}:3000
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/docs')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ── Next.js frontend ─────────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # These are baked into the JS bundle at build time.
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:-https://your-project.supabase.co}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY:-your-anon-key}
+        # Browser fetches the backend directly — must be reachable from the user's browser.
+        # Use your home server's LAN IP or hostname, e.g. http://192.168.1.10:8000
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+    ports:
+      - "3000:3000"           # host:container
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
