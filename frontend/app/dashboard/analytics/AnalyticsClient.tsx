@@ -89,10 +89,10 @@ export default function AnalyticsClient({ initialTransactions }: { initialTransa
   return (
     <div className="flex min-h-screen" style={{ background: "var(--bg-main)", fontFamily: "DM Sans, sans-serif" }}>
       <Sidebar />
-      <main className="flex-1 ml-56 p-6">
+      <main className="flex-1 md:ml-56 pt-16 md:pt-0 p-4 md:p-6">
 
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
           <div>
             <h1 className="text-xl font-bold" style={{ fontFamily: "Sora, sans-serif", color: "var(--text-primary)" }}>
               Analytics
@@ -128,7 +128,7 @@ export default function AnalyticsClient({ initialTransactions }: { initialTransa
         </div>
 
         {/* Summary cards */}
-        <div className="grid grid-cols-3 gap-4 mb-5">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
           {[
             { label: "Total Expense", value: `Rp ${formatCurrency(totalExpense)}`, icon: TrendingDown, color: "var(--expense-red)" },
             { label: "Total Income",  value: `Rp ${formatCurrency(totalIncome)}`,  icon: TrendingUp,   color: "var(--income-green)" },
@@ -149,7 +149,7 @@ export default function AnalyticsClient({ initialTransactions }: { initialTransa
         </div>
 
         {/* Charts grid */}
-        <div className="grid grid-cols-2 gap-4 mb-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
 
           {/* Month-over-month trend */}
           <div className="rounded-2xl p-5" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
@@ -200,8 +200,8 @@ export default function AnalyticsClient({ initialTransactions }: { initialTransa
         </div>
 
         {/* Daily spending + donut */}
-        <div className="grid grid-cols-3 gap-4">
-          <div className="col-span-2 rounded-2xl p-5" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="col-span-1 lg:col-span-2 rounded-2xl p-5" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
             <h3 className="text-sm font-semibold mb-4" style={{ fontFamily: "Sora, sans-serif", color: "var(--text-primary)" }}>
               Daily Spending
             </h3>

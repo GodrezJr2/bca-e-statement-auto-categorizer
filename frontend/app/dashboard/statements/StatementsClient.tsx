@@ -53,7 +53,7 @@ export default function StatementsClient({ initialTransactions }: { initialTrans
   return (
     <div className="flex min-h-screen" style={{ background: "var(--bg-main)", fontFamily: "DM Sans, sans-serif" }}>
       <Sidebar />
-      <main className="flex-1 ml-56 p-6">
+      <main className="flex-1 md:ml-56 pt-16 md:pt-0 p-4 md:p-6">
 
         {/* Header */}
         <div className="mb-6">
@@ -65,9 +65,9 @@ export default function StatementsClient({ initialTransactions }: { initialTrans
           </p>
         </div>
 
-        <div className="flex gap-4">
+        <div className="flex flex-col sm:flex-row gap-4">
           {/* Month list sidebar */}
-          <div className="w-48 shrink-0 space-y-2">
+          <div className="flex sm:flex-col gap-2 sm:w-48 sm:shrink-0 overflow-x-auto pb-1 sm:pb-0">
             {months.length === 0 && (
               <p className="text-xs" style={{ color: "var(--text-muted)" }}>No statements uploaded yet.</p>
             )}
@@ -101,7 +101,7 @@ export default function StatementsClient({ initialTransactions }: { initialTrans
             {activeMonth && (
               <>
                 {/* Month stats */}
-                <div className="grid grid-cols-3 gap-3 mb-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
                   {[
                     { label: "Total Expense", value: monthStats.expense, icon: TrendingDown, color: "var(--expense-red)" },
                     { label: "Total Income",  value: monthStats.income,  icon: TrendingUp,   color: "var(--income-green)" },

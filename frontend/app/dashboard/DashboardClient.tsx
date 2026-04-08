@@ -76,10 +76,10 @@ export default function DashboardClient({ initialTransactions }: { initialTransa
       <Sidebar />
 
       {/* Main content */}
-      <main className="flex-1 ml-56 p-6 min-h-screen">
+      <main className="flex-1 md:ml-56 pt-16 md:pt-0 p-4 md:p-6 min-h-screen">
 
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
           <div>
             <h1 className="text-xl font-bold" style={{ fontFamily: "Sora, sans-serif", color: "var(--text-primary)" }}>
               Dashboard
@@ -117,7 +117,7 @@ export default function DashboardClient({ initialTransactions }: { initialTransa
         </div>
 
         {/* Stats row */}
-        <div className="grid grid-cols-3 gap-4 mb-5">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
           <StatsCard label="Total Expense" value={totalExpense} type="expense"
             subtitle={selectedMonth === "all" ? "All time" : formatMonthLabel(selectedMonth)} />
           <StatsCard label="Total Income" value={totalIncome} type="income"
@@ -127,7 +127,7 @@ export default function DashboardClient({ initialTransactions }: { initialTransa
         </div>
 
         {/* Main grid */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
           {/* Upload — left column */}
           <div className="col-span-1 space-y-4">
@@ -162,7 +162,7 @@ export default function DashboardClient({ initialTransactions }: { initialTransa
           </div>
 
           {/* Charts — right 2 columns */}
-          <div className="col-span-2 space-y-4">
+          <div className="col-span-1 lg:col-span-2 space-y-4">
 
             {/* Bar chart */}
             <div className="rounded-2xl p-5" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
@@ -178,7 +178,7 @@ export default function DashboardClient({ initialTransactions }: { initialTransa
             </div>
 
             {/* Pie + Largest Transactions row */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="rounded-2xl p-5" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
                 <h3 className="text-sm font-semibold mb-1" style={{ fontFamily: "Sora, sans-serif", color: "var(--text-primary)" }}>
                   Spending by Category
