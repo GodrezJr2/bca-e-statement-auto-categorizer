@@ -13,9 +13,9 @@ services:
       - LLM_PROVIDER=${LLM_PROVIDER:-gemini}
       # Allow both the local frontend container and the browser on your LAN.
       # Set SERVER_IP to your home server's local IP, e.g. 192.168.1.10
-      # CORS_ORIGINS can be overridden directly in .env for clarity.
-      # Falls back to building from SERVER_IP if not set explicitly.
-      - CORS_ORIGINS=${CORS_ORIGINS:-http://frontend:3000,http://localhost:3000,http://${SERVER_IP:-localhost}:3000}
+      # Set CORS_ORIGINS explicitly in .env, e.g.:
+      # CORS_ORIGINS=http://192.168.1.10:3000,http://localhost:3000
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/docs')"]
