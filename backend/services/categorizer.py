@@ -13,7 +13,18 @@ _ENV_PATH = Path(__file__).resolve().parent.parent / ".env"
 load_dotenv(dotenv_path=_ENV_PATH)
 
 _GEMINI_API_KEY: str | None = os.environ.get("GEMINI_API_KEY")
-_GEMINI_MODEL: str = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+
+# Fallback chain: try each model in order until one succeeds.
+# Override the first model via GEMINI_MODEL env var; the rest are fixed fallbacks.
+_PRIMARY_MODEL: str = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash")
+_MODEL_FALLBACK_CHAIN: list[str] = [
+    _PRIMARY_MODEL,
+    "gemini-2.0-flash-lite",
+    "gemini-1.5-flash-latest",
+]
+# Deduplicate while preserving order
+_seen: set[str] = set()
+_MODEL_FALLBACK_CHAIN = [m for m in _MODEL_FALLBACK_CHAIN if not (m in _seen or _seen.add(m))]  # type: ignore[func-returns-value]
 
 CATEGORIES = [
     "Food", "Transport", "Utilities", "Shopping",
@@ -31,24 +42,37 @@ _SYSTEM_PROMPT = (
 _BATCH_SIZE = 50  # stay within token limits
 
 
-async def _call_gemini(descriptions: list[str]) -> list[str]:
+async def _call_gemini_with_model(descriptions: list[str], model_name: str) -> list[str]:
     import google.generativeai as genai
     if not _GEMINI_API_KEY:
         raise RuntimeError("GEMINI_API_KEY is not set. Check backend/.env.")
     genai.configure(api_key=_GEMINI_API_KEY)
     model = genai.GenerativeModel(
-        model_name=_GEMINI_MODEL,
+        model_name=model_name,
         generation_config={"response_mime_type": "application/json"},
     )
     prompt = _SYSTEM_PROMPT + "\n\nDescriptions:\n" + json.dumps(descriptions, ensure_ascii=False)
-    # Run blocking SDK call in thread pool to avoid blocking the event loop
     loop = asyncio.get_running_loop()
     response = await loop.run_in_executor(None, model.generate_content, prompt)
     result = json.loads(response.text)
     if isinstance(result, list):
         return result
-    # Some models wrap in {"categories": [...]}
     return result.get("categories", [])
+
+
+async def _call_gemini(descriptions: list[str]) -> list[str]:
+    """Try each model in the fallback chain; raise only if all fail."""
+    last_exc: Exception = RuntimeError("No models configured.")
+    for model_name in _MODEL_FALLBACK_CHAIN:
+        try:
+            result = await _call_gemini_with_model(descriptions, model_name)
+            if model_name != _MODEL_FALLBACK_CHAIN[0]:
+                _logger.info("Used fallback model: %s", model_name)
+            return result
+        except Exception as e:
+            _logger.warning("Model %s failed (%s), trying next...", model_name, e)
+            last_exc = e
+    raise last_exc
 
 
 _VALID = set(CATEGORIES)  # derived from CATEGORIES — do not maintain separately
