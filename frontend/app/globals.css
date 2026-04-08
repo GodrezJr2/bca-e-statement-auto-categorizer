@@ -1,3 +1,26 @@
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap');
+
+:root {
+  --sidebar-bg: #0A1628;
+  --sidebar-accent: #1a2942;
+  --sidebar-active: #1D4ED8;
+  --accent-blue: #1D4ED8;
+  --accent-blue-light: #3B82F6;
+  --income-green: #059669;
+  --expense-red: #DC2626;
+  --bg-main: #F0F4F8;
+  --bg-card: #FFFFFF;
+  --text-primary: #0F172A;
+  --text-secondary: #64748B;
+  --text-muted: #94A3B8;
+  --border: #E2E8F0;
+}
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg-main);
+}
+
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";

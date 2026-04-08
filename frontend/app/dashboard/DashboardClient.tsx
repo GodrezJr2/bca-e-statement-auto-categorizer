@@ -1,8 +1,11 @@
 "use client";
 import { useState, useMemo } from "react";
+import { Sidebar } from "@/components/Sidebar";
+import { StatsCard } from "@/components/StatsCard";
 import { UploadForm } from "@/components/UploadForm";
 import { SpendingPieChart } from "@/components/SpendingPieChart";
 import { DailyBarChart } from "@/components/DailyBarChart";
+import { LargestTransactions } from "@/components/LargestTransactions";
 import { createClient } from "@/lib/supabase";
 import type { Transaction } from "@/lib/types";
 
@@ -13,7 +16,8 @@ function buildPieData(transactions: Transaction[]) {
     const cat = t.categories?.name ?? "Other";
     map[cat] = (map[cat] ?? 0) + Math.abs(t.amount);
   }
-  return Object.entries(map).map(([name, value]) => ({ name, value: Math.round(value) }));
+  return Object.entries(map).map(([name, value]) => ({ name, value: Math.round(value) }))
+    .sort((a, b) => b.value - a.value);
 }
 
 function buildBarData(transactions: Transaction[]) {
@@ -27,8 +31,35 @@ function buildBarData(transactions: Transaction[]) {
     .map(([date, amount]) => ({ date, amount: Math.round(amount) }));
 }
 
+function getMonthKey(dateStr: string) {
+  return dateStr.slice(0, 7); // "YYYY-MM"
+}
+
+function formatMonthLabel(key: string) {
+  const [y, m] = key.split("-");
+  const d = new Date(Number(y), Number(m) - 1);
+  return d.toLocaleDateString("id-ID", { month: "short", year: "numeric" });
+}
+
 export default function DashboardClient({ initialTransactions }: { initialTransactions: Transaction[] }) {
   const [transactions, setTransactions] = useState(initialTransactions);
+  const [selectedMonth, setSelectedMonth] = useState<string>("all");
+
+  // Get all unique months
+  const months = useMemo(() => {
+    const set = new Set(transactions.map(t => getMonthKey(t.transaction_date)));
+    return Array.from(set).sort().reverse();
+  }, [transactions]);
+
+  const filtered = useMemo(() =>
+    selectedMonth === "all" ? transactions : transactions.filter(t => getMonthKey(t.transaction_date) === selectedMonth),
+    [transactions, selectedMonth]
+  );
+
+  const pieData  = useMemo(() => buildPieData(filtered), [filtered]);
+  const barData  = useMemo(() => buildBarData(filtered), [filtered]);
+  const totalExpense = useMemo(() => filtered.filter(t => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0), [filtered]);
+  const totalIncome  = useMemo(() => filtered.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0), [filtered]);
 
   async function refresh() {
     const supabase = createClient();
@@ -36,43 +67,135 @@ export default function DashboardClient({ initialTransactions }: { initialTransa
       .from("transactions")
       .select("transaction_date, description, amount, categories(name)")
       .order("transaction_date", { ascending: false });
-    if (error) {
-      console.error("Failed to refresh transactions:", error.message);
-      return;
-    }
+    if (error) { console.error("Refresh failed:", error.message); return; }
     setTransactions((data as unknown as Transaction[]) ?? []);
   }
 
-  const pieData     = useMemo(() => buildPieData(transactions), [transactions]);
-  const barData     = useMemo(() => buildBarData(transactions), [transactions]);
-  const totalExpense = useMemo(() => transactions.filter(t => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0), [transactions]);
-  const totalIncome  = useMemo(() => transactions.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0), [transactions]);
-
   return (
-    <main className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-6xl mx-auto">
-        <h1 className="text-2xl font-bold mb-2">BCA e-Statement Dashboard</h1>
-        <div className="flex gap-6 mb-6 text-sm text-gray-600">
-          <span>Total Expense: <strong className="text-red-600">Rp {totalExpense.toLocaleString("id-ID")}</strong></span>
-          <span>Total Income: <strong className="text-green-600">Rp {totalIncome.toLocaleString("id-ID")}</strong></span>
-          <span>Transactions: <strong>{transactions.length}</strong></span>
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-1">
-            <UploadForm onSuccess={refresh} />
+    <div className="flex min-h-screen" style={{ background: "var(--bg-main)", fontFamily: "DM Sans, sans-serif" }}>
+      <Sidebar />
+
+      {/* Main content */}
+      <main className="flex-1 ml-56 p-6 min-h-screen">
+
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-xl font-bold" style={{ fontFamily: "Sora, sans-serif", color: "var(--text-primary)" }}>
+              Dashboard
+            </h1>
+            <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
+              {transactions.length} total transactions
+            </p>
           </div>
-          <div className="lg:col-span-2 space-y-6">
-            <div className="bg-white rounded-xl shadow p-4">
-              <h2 className="text-lg font-semibold mb-2">Spending by Category</h2>
-              <SpendingPieChart data={pieData} />
+
+          {/* Month filter pills */}
+          {months.length > 0 && (
+            <div className="flex items-center gap-2 flex-wrap justify-end">
+              <button onClick={() => setSelectedMonth("all")}
+                className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
+                style={{
+                  background: selectedMonth === "all" ? "var(--accent-blue)" : "var(--bg-card)",
+                  color: selectedMonth === "all" ? "#fff" : "var(--text-secondary)",
+                  border: "1px solid var(--border)",
+                }}>
+                All Time
+              </button>
+              {months.map(m => (
+                <button key={m} onClick={() => setSelectedMonth(m)}
+                  className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
+                  style={{
+                    background: selectedMonth === m ? "var(--accent-blue)" : "var(--bg-card)",
+                    color: selectedMonth === m ? "#fff" : "var(--text-secondary)",
+                    border: "1px solid var(--border)",
+                  }}>
+                  {formatMonthLabel(m)}
+                </button>
+              ))}
             </div>
-            <div className="bg-white rounded-xl shadow p-4">
-              <h2 className="text-lg font-semibold mb-2">Daily Spending</h2>
+          )}
+        </div>
+
+        {/* Stats row */}
+        <div className="grid grid-cols-3 gap-4 mb-5">
+          <StatsCard label="Total Expense" value={totalExpense} type="expense"
+            subtitle={selectedMonth === "all" ? "All time" : formatMonthLabel(selectedMonth)} />
+          <StatsCard label="Total Income" value={totalIncome} type="income"
+            subtitle={selectedMonth === "all" ? "All time" : formatMonthLabel(selectedMonth)} />
+          <StatsCard label="Transactions" value={filtered.length} type="count"
+            subtitle={`${filtered.filter(t => t.amount < 0).length} debit · ${filtered.filter(t => t.amount > 0).length} credit`} />
+        </div>
+
+        {/* Main grid */}
+        <div className="grid grid-cols-3 gap-4">
+
+          {/* Upload — left column */}
+          <div className="col-span-1 space-y-4">
+            <UploadForm onSuccess={refresh} />
+
+            {/* Statement history */}
+            {months.length > 0 && (
+              <div className="rounded-2xl p-5" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
+                <h3 className="text-sm font-semibold mb-3" style={{ color: "var(--text-primary)", fontFamily: "Sora, sans-serif" }}>
+                  Uploaded Statements
+                </h3>
+                <div className="space-y-2">
+                  {months.map(m => {
+                    const count = transactions.filter(t => getMonthKey(t.transaction_date) === m).length;
+                    return (
+                      <button key={m} onClick={() => setSelectedMonth(m)}
+                        className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-left transition-all"
+                        style={{
+                          background: selectedMonth === m ? "#EFF6FF" : "#F8FAFC",
+                          border: `1px solid ${selectedMonth === m ? "var(--accent-blue-light)" : "var(--border)"}`,
+                        }}>
+                        <span className="text-xs font-semibold" style={{ color: selectedMonth === m ? "var(--accent-blue)" : "var(--text-primary)" }}>
+                          {formatMonthLabel(m)}
+                        </span>
+                        <span className="text-xs" style={{ color: "var(--text-muted)" }}>{count} txn</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Charts — right 2 columns */}
+          <div className="col-span-2 space-y-4">
+
+            {/* Bar chart */}
+            <div className="rounded-2xl p-5" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-semibold" style={{ fontFamily: "Sora, sans-serif", color: "var(--text-primary)" }}>
+                  Daily Spending
+                </h3>
+                <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+                  {selectedMonth === "all" ? "All time" : formatMonthLabel(selectedMonth)}
+                </p>
+              </div>
               <DailyBarChart data={barData} />
             </div>
+
+            {/* Pie + Largest Transactions row */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="rounded-2xl p-5" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
+                <h3 className="text-sm font-semibold mb-1" style={{ fontFamily: "Sora, sans-serif", color: "var(--text-primary)" }}>
+                  Spending by Category
+                </h3>
+                <SpendingPieChart data={pieData} />
+              </div>
+
+              <div className="rounded-2xl p-5" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
+                <h3 className="text-sm font-semibold mb-3" style={{ fontFamily: "Sora, sans-serif", color: "var(--text-primary)" }}>
+                  Largest Transactions
+                </h3>
+                <LargestTransactions transactions={filtered} />
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-    </main>
+      </main>
+    </div>
   );
 }
