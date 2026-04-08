@@ -39,11 +39,25 @@ export function UploadForm({ onSuccess }: UploadFormProps) {
     formData.append("file", file);
     formData.append("password", password);
 
-    const res = await fetch(`${apiUrl}/api/upload-statement`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${session.access_token}` },
-      body: formData,
-    });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 120_000); // 2-min timeout
+    let res: Response;
+    try {
+      res = await fetch(`${apiUrl}/api/upload-statement`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${session.access_token}` },
+        body: formData,
+        signal: controller.signal,
+      });
+    } catch (err: unknown) {
+      clearTimeout(timeout);
+      setStatus("error");
+      setMessage(err instanceof Error && err.name === "AbortError"
+        ? "Request timed out. The server may be overloaded — try again."
+        : "Could not reach the server. Check your connection.");
+      return;
+    }
+    clearTimeout(timeout);
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({ detail: "Upload failed." }));

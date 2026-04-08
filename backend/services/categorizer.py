@@ -53,7 +53,10 @@ async def _call_gemini_with_model(descriptions: list[str], model_name: str) -> l
     )
     prompt = _SYSTEM_PROMPT + "\n\nDescriptions:\n" + json.dumps(descriptions, ensure_ascii=False)
     loop = asyncio.get_running_loop()
-    response = await loop.run_in_executor(None, model.generate_content, prompt)
+    response = await asyncio.wait_for(
+        loop.run_in_executor(None, model.generate_content, prompt),
+        timeout=30.0,  # fail fast so the next model in the chain can be tried
+    )
     result = json.loads(response.text)
     if isinstance(result, list):
         return result
