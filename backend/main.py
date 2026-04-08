@@ -8,15 +8,19 @@ load_dotenv()
 
 app = FastAPI(title="BCA e-Statement API")
 
-# CORS_ORIGINS can be a comma-separated list, e.g.:
-# "http://localhost:3000,https://your-app.vercel.app"
-_raw = os.environ.get("CORS_ORIGINS", "http://localhost:3000")
-origins = [o.strip() for o in _raw.split(",") if o.strip()]
+# For self-hosted / home-server deployments behind Tailscale or a private network,
+# we allow all origins. Auth is enforced by Supabase JWT on every request.
+# To restrict origins, set CORS_ORIGINS=comma,separated,list in your .env.
+_raw = os.environ.get("CORS_ORIGINS", "*")
+if _raw.strip() == "*":
+    origins = ["*"]
+else:
+    origins = [o.strip() for o in _raw.split(",") if o.strip()]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_credentials=True,
+    allow_credentials=origins != ["*"],  # credentials not allowed with wildcard
     allow_methods=["*"],
     allow_headers=["*"],
 )
