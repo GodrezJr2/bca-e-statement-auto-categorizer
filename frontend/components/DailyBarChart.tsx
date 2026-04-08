@@ -11,7 +11,7 @@ export function DailyBarChart({ data }: { data: ChartEntry[] }) {
         <CartesianGrid strokeDasharray="3 3" />
         <XAxis dataKey="date" tick={{ fontSize: 11 }} />
         <YAxis tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} />
-        <Tooltip formatter={(v: number) => `Rp ${v.toLocaleString("id-ID")}`} />
+        <Tooltip formatter={(v) => `Rp ${Number(v).toLocaleString("id-ID")}`} />
         <Bar dataKey="amount" fill="#6366f1" radius={[4, 4, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>

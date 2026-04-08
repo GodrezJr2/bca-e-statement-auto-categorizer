@@ -16,7 +16,7 @@ export function SpendingPieChart({ data }: { data: ChartEntry[] }) {
         <Pie data={data} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>
           {data.map((_, i) => <Cell key={String(i)} fill={COLORS[i % COLORS.length]} />)}
         </Pie>
-        <Tooltip formatter={(v: number) => `Rp ${v.toLocaleString("id-ID")}`} />
+        <Tooltip formatter={(v) => `Rp ${Number(v).toLocaleString("id-ID")}`} />
         <Legend />
       </PieChart>
     </ResponsiveContainer>

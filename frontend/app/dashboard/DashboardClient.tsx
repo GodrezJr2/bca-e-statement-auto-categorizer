@@ -42,7 +42,7 @@ export default function DashboardClient({ initialTransactions }: { initialTransa
       .from("transactions")
       .select("transaction_date, description, amount, categories(name)")
       .order("transaction_date", { ascending: false });
-    setTransactions((data as Transaction[]) ?? []);
+    setTransactions((data as unknown as Transaction[]) ?? []);
   }
 
   const totalExpense = transactions.filter(t => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0);

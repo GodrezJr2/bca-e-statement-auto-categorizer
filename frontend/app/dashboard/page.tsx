@@ -19,5 +19,5 @@ export default async function DashboardPage() {
     .select("transaction_date, description, amount, categories(name)")
     .order("transaction_date", { ascending: false });
 
-  return <DashboardClient initialTransactions={(transactions as Transaction[]) ?? []} />;
+  return <DashboardClient initialTransactions={(transactions as unknown as Transaction[]) ?? []} />;
 }
