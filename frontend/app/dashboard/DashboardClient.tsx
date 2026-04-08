@@ -1,16 +1,10 @@
 "use client";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { UploadForm } from "@/components/UploadForm";
 import { SpendingPieChart } from "@/components/SpendingPieChart";
 import { DailyBarChart } from "@/components/DailyBarChart";
 import { createClient } from "@/lib/supabase";
-
-interface Transaction {
-  transaction_date: string;
-  description: string;
-  amount: number;
-  categories: { name: string } | null;
-}
+import type { Transaction } from "@/lib/types";
 
 function buildPieData(transactions: Transaction[]) {
   const map: Record<string, number> = {};
@@ -38,15 +32,21 @@ export default function DashboardClient({ initialTransactions }: { initialTransa
 
   async function refresh() {
     const supabase = createClient();
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("transactions")
       .select("transaction_date, description, amount, categories(name)")
       .order("transaction_date", { ascending: false });
+    if (error) {
+      console.error("Failed to refresh transactions:", error.message);
+      return;
+    }
     setTransactions((data as unknown as Transaction[]) ?? []);
   }
 
-  const totalExpense = transactions.filter(t => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0);
-  const totalIncome  = transactions.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0);
+  const pieData     = useMemo(() => buildPieData(transactions), [transactions]);
+  const barData     = useMemo(() => buildBarData(transactions), [transactions]);
+  const totalExpense = useMemo(() => transactions.filter(t => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0), [transactions]);
+  const totalIncome  = useMemo(() => transactions.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0), [transactions]);
 
   return (
     <main className="min-h-screen bg-gray-50 p-6">
@@ -64,11 +64,11 @@ export default function DashboardClient({ initialTransactions }: { initialTransa
           <div className="lg:col-span-2 space-y-6">
             <div className="bg-white rounded-xl shadow p-4">
               <h2 className="text-lg font-semibold mb-2">Spending by Category</h2>
-              <SpendingPieChart data={buildPieData(transactions)} />
+              <SpendingPieChart data={pieData} />
             </div>
             <div className="bg-white rounded-xl shadow p-4">
               <h2 className="text-lg font-semibold mb-2">Daily Spending</h2>
-              <DailyBarChart data={buildBarData(transactions)} />
+              <DailyBarChart data={barData} />
             </div>
           </div>
         </div>

@@ -24,15 +24,24 @@ export function UploadForm({ onSuccess }: UploadFormProps) {
     setMessage(null);
 
     const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setStatus("error"); setMessage("Not authenticated."); return; }
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) { setStatus("error"); setMessage("Not authenticated."); return; }
+    if (!session) { setStatus("error"); setMessage("Session expired. Please reload."); return; }
 
     const formData = new FormData();
     formData.append("file", file);
     formData.append("password", password);
 
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+    if (!apiUrl) {
+      setStatus("error");
+      setMessage("API URL is not configured.");
+      return;
+    }
+
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/upload-statement`,
+      `${apiUrl}/api/upload-statement`,
       {
         method: "POST",
         headers: { Authorization: `Bearer ${session.access_token}` },

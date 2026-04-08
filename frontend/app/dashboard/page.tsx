@@ -1,13 +1,7 @@
 import { redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 import DashboardClient from "./DashboardClient";
-
-interface Transaction {
-  transaction_date: string;
-  description: string;
-  amount: number;
-  categories: { name: string } | null;
-}
+import type { Transaction } from "@/lib/types";
 
 export default async function DashboardPage() {
   const supabase = await createServerSupabaseClient();
