@@ -166,7 +166,7 @@ export default function AnalyticsClient({ initialTransactions }: { initialTransa
                   <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
                   <XAxis dataKey="month" tick={{ fontSize: 10, fill: "#94A3B8" }} axisLine={false} tickLine={false} />
                   <YAxis tickFormatter={formatCurrency} tick={{ fontSize: 10, fill: "#94A3B8" }} axisLine={false} tickLine={false} width={45} />
-                  <Tooltip formatter={(v: number) => `Rp ${v.toLocaleString("id-ID")}`}
+                  <Tooltip formatter={(v: unknown) => `Rp ${(v as number).toLocaleString("id-ID")}`}
                     contentStyle={{ background: "#1E293B", border: "none", borderRadius: 8, color: "#fff", fontSize: 11 }} />
                   <Legend iconSize={8} wrapperStyle={{ fontSize: 11 }} />
                   <Line type="monotone" dataKey="expense" name="Expense" stroke="#EF4444" strokeWidth={2} dot={{ r: 3 }} />
@@ -188,7 +188,7 @@ export default function AnalyticsClient({ initialTransactions }: { initialTransa
                 <BarChart data={categoryData} layout="vertical" margin={{ top: 0, right: 8, bottom: 0, left: 0 }}>
                   <XAxis type="number" tickFormatter={formatCurrency} tick={{ fontSize: 10, fill: "#94A3B8" }} axisLine={false} tickLine={false} />
                   <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: "#94A3B8" }} axisLine={false} tickLine={false} width={70} />
-                  <Tooltip formatter={(v: number) => `Rp ${v.toLocaleString("id-ID")}`}
+                  <Tooltip formatter={(v: unknown) => `Rp ${(v as number).toLocaleString("id-ID")}`}
                     contentStyle={{ background: "#1E293B", border: "none", borderRadius: 8, color: "#fff", fontSize: 11 }} />
                   <Bar dataKey="value" radius={[0, 4, 4, 0]}
                     fill="var(--accent-blue)"
