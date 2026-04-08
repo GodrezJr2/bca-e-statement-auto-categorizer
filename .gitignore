@@ -13,3 +13,6 @@ frontend/.env.local
 # OS
 .DS_Store
 Thumbs.db
+
+# e-Statement PDFs (sensitive financial documents)
+*.pdf
