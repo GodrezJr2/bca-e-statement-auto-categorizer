@@ -31,13 +31,38 @@ CATEGORIES = [
     "Subscription", "Health", "Entertainment", "Transfer", "Income", "Other"
 ]
 
-_SYSTEM_PROMPT = (
-    "You are a financial transaction categorizer for Indonesian bank statements. "
-    "Given a JSON array of transaction descriptions, return a JSON array of category strings. "
-    "Each element must be exactly one of: " + ", ".join(CATEGORIES) + ". "
-    "The output array must have exactly the same length as the input array. "
-    "Respond with ONLY the JSON array — no explanation, no markdown, no code block."
-)
+_SYSTEM_PROMPT = """You are a financial transaction categorizer for Indonesian BCA bank statements.
+Given a JSON array of transaction descriptions, return a JSON array of category strings.
+Each element must be exactly one of: Food, Transport, Utilities, Shopping, Subscription, Health, Entertainment, Transfer, Income, Other.
+The output array must have exactly the same length as the input array.
+Respond with ONLY the JSON array — no explanation, no markdown, no code block.
+
+Category rules (use the MOST SPECIFIC match):
+- Food: restaurants, cafes, food stalls, delivery apps, any Indonesian food keyword.
+  Keywords: makan, mie, bakso, nasi, ayam, soto, kwetiau, batagor, siomay, warteg, warung,
+  restoran, cafe, kopi, pizza, burger, sushi, indomaret (food), alfamart (food), grabfood,
+  gofood, shopeefood, kfc, mcdonald, starbucks, chatime, boba, martabak, sate, rendang,
+  gudeg, gado, pecel, lalapan, seafood, ikan, udang, kepiting, bebek, padang.
+- Transport: ojek, gojek, grab (non-food), taxi, parkir, tol, bensin, bbm, pertamina,
+  shell, spbu, busway, kereta, commuter, mrt, lrt, transjakarta, damri, bus, angkot.
+- Utilities: listrik, pln, air, pdam, gas, pgn, telkom, wifi, internet, indihome,
+  firstmedia, phone credit, pulsa, token, tagihan.
+- Shopping: tokopedia, shopee, lazada, bukalapak, blibli, tiktok shop, zalora,
+  alfamart, indomaret, hypermart, carrefour, giant, hero, supermarket, minimarket,
+  clothes, fashion, elektronik, hp, laptop.
+- Subscription: netflix, spotify, youtube, disney, apple, google play, icloud,
+  microsoft, adobe, canva, zoom, chatgpt, openai.
+- Health: apotek, farmasi, klinik, rumah sakit, rs, dokter, lab, kimia farma,
+  century, guardian, watsons, dental, mata, optic.
+- Entertainment: bioskop, cinema, xxi, cgv, cineplex, karaoke, game, steam,
+  playstation, konser, tiket, event.
+- Transfer: TRSF, transfer, kirim uang, BI-FAST, RTGS, SKN, top up, flip,
+  dana, ovo, gopay, linkaja, jenius — when money moves between accounts.
+- Income: salary, gaji, bonus, THR, dividen, bunga, credit incoming (CR) from employer.
+- Other: fees, admin, biaya, charges, ATM, withdrawal, or anything not matching above.
+
+Important: BCA descriptions often follow "TRANSAKSI DEBIT TGL: DD/MM | MERCHANT NAME".
+The merchant name after "|" is the key signal. Use it to categorize."""
 
 _BATCH_SIZE = 50  # stay within token limits
 
