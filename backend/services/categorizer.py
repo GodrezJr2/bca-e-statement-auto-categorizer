@@ -16,11 +16,12 @@ _GEMINI_API_KEY: str | None = os.environ.get("GEMINI_API_KEY")
 
 # Fallback chain: try each model in order until one succeeds.
 # Override the first model via GEMINI_MODEL env var; the rest are fixed fallbacks.
-_PRIMARY_MODEL: str = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash")
+_PRIMARY_MODEL: str = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
 _MODEL_FALLBACK_CHAIN: list[str] = [
     _PRIMARY_MODEL,
-    "gemini-2.0-flash-lite",
-    "gemini-1.5-flash-latest",
+    "gemini-2.5-pro",      # untouched quota, same API key
+    "gemini-2.0-flash",    # lower RPD but worth trying
+    "gemma-3-27b-it",      # 14.4K RPD — Gemma via same Gemini API key
 ]
 # Deduplicate while preserving order
 _seen: set[str] = set()
