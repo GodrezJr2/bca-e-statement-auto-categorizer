@@ -62,7 +62,21 @@ async def upload_statement(
     if other_id is None:
         raise HTTPException(status_code=500, detail="Category table is missing the 'Other' seed row.")
 
-    # 6. Bulk-insert transactions
+    # 6. Delete existing transactions for the same months, then insert fresh.
+    # This makes re-uploading the same PDF idempotent (no duplicates).
+    months_in_upload = list({str(ct.transaction_date)[:7] for ct in categorized})  # ["YYYY-MM", ...]
+    for month in months_in_upload:
+        month_start = f"{month}-01"
+        # last day of month via next-month trick
+        y, m = int(month[:4]), int(month[5:7])
+        if m == 12:
+            month_end = f"{y + 1}-01-01"
+        else:
+            month_end = f"{y}-{m + 1:02d}-01"
+        supabase.table("transactions").delete().eq("user_id", user_id).gte(
+            "transaction_date", month_start
+        ).lt("transaction_date", month_end).execute()
+
     rows = [
         {
             "user_id":          user_id,
