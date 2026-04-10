@@ -28,6 +28,77 @@ CATEGORIES = [
     "Subscription", "Health", "Entertainment", "Transfer", "Income", "Other"
 ]
 
+# ---------------------------------------------------------------------------
+# Rule-based pre-filter — handles obvious patterns without calling the LLM.
+# Returns a category string or None (meaning: send to LLM).
+# ---------------------------------------------------------------------------
+_TRANSFER_PREFIXES = ("TRSF E-BANKING", "BI-FAST", "RTGS", "SKN ONLINE")
+_FOOD_KW = (
+    "KFC", "MCDONALD", "BURGER", "PIZZA", "BAKSO", "MIE ", "KWETIAU",
+    "NASI", "SOTO", "WARTEG", "WARUNG", "CAFE", "KOPI", "BOBA",
+    "RICHEESE", "STARBUCKS", "CHATIME", "SUSHI", "MARTABAK",
+    "KETOPMIE", "KETO MIE", "AYAM", "BEBEK", "PADANG", "PECEL",
+    "GOFOOD", "GRABFOOD", "SHOPEEFOOD", "TUXEDO", "RESTO", "RESTORAN",
+    "SEAFOOD", "SATE ", "RENDANG", "BATAGOR", "SIOMAY", "GADO",
+    "LUIGI", "PANTAI",  # likely food/restaurant names from your data
+)
+_SHOPPING_KW = (
+    "SHOPEE", "TOKOPEDIA", "LAZADA", "BUKALAPAK", "BLIBLI",
+    "INDOMARET", "ALFAMART", "IDM INDOM", "MINIMARKET", "SUPERMARKET",
+    "HYPERMART", "CARREFOUR", "JNE", "SICEPAT", "ANTERAJA", "TIKI",
+)
+_TRANSPORT_KW = (
+    "FLAZZ", "E-TOLL", "ETOLL", "GOJEK", "GRAB", "OJEK",
+    "PARKIR", "BENSIN", "PERTAMINA", "SPBU", "SHELL",
+)
+_UTILITIES_KW = (
+    "TELKOMSEL", "MYTELKOMSEL", "TELKOM", "PLN ", "LISTRIK", "PDAM",
+    "INDIHOME", "FIRSTMEDIA", "PULSA", "TOKEN LISTRIK", "XL AXIATA",
+    "INDOSAT", "SMARTFREN",
+)
+_SUBSCRIPTION_KW = (
+    "NETFLIX", "SPOTIFY", "YOUTUBE", "DISNEY", "APPLE.COM",
+    "GOOGLE PLAY", "ICLOUD", "MICROSOFT", "ADOBE", "CANVA",
+    "CHATGPT", "OPENAI", "ZOOM",
+)
+_HEALTH_KW = (
+    "APOTEK", "FARMASI", "KLINIK", "RUMAH SAKIT", " RS ", "DOKTER",
+    "KIMIA FARMA", "CENTURY", "GUARDIAN", "WATSONS", "DENTAL", "OPTIK",
+)
+
+
+def _rule_category(description: str) -> str | None:
+    d = description.upper()
+
+    # Transfer: check full description
+    if any(d.startswith(p) or p in d for p in _TRANSFER_PREFIXES):
+        # DB/debit = Transfer out, CR/credit = still Transfer (between accounts)
+        return "Transfer"
+
+    # For BCA "TRANSAKSI DEBIT TGL: DD/MM | MERCHANT" — use merchant part
+    merchant = d.split("|", 1)[1].strip() if "|" in d else d
+
+    for kw in _FOOD_KW:
+        if kw in merchant:
+            return "Food"
+    for kw in _SHOPPING_KW:
+        if kw in merchant:
+            return "Shopping"
+    for kw in _TRANSPORT_KW:
+        if kw in merchant:
+            return "Transport"
+    for kw in _UTILITIES_KW:
+        if kw in merchant:
+            return "Utilities"
+    for kw in _SUBSCRIPTION_KW:
+        if kw in merchant:
+            return "Subscription"
+    for kw in _HEALTH_KW:
+        if kw in merchant:
+            return "Health"
+
+    return None  # unknown — send to LLM
+
 _SYSTEM_PROMPT = """You are a financial transaction categorizer for Indonesian BCA bank statements.
 Given a JSON array of transaction descriptions, return a JSON array of category strings.
 Each element must be exactly one of: Food, Transport, Utilities, Shopping, Subscription, Health, Entertainment, Transfer, Income, Other.
@@ -121,21 +192,31 @@ async def _call_with_fallback(descriptions: list[str]) -> list[str]:
 async def categorize_transactions(
     transactions: list[Transaction],
 ) -> list[CategorizedTransaction]:
-    all_categories: list[str] = []
+    # Step 1: apply rule-based filter first
+    pre: list[str | None] = [_rule_category(t.description) for t in transactions]
 
-    for i in range(0, len(transactions), _BATCH_SIZE):
-        batch = transactions[i: i + _BATCH_SIZE]
-        descs = [t.description for t in batch]
+    # Step 2: only send unknowns to LLM
+    unknown_indices = [i for i, cat in enumerate(pre) if cat is None]
+    unknown_descs  = [transactions[i].description for i in unknown_indices]
+
+    llm_results: list[str] = []
+    for i in range(0, len(unknown_descs), _BATCH_SIZE):
+        batch_descs = unknown_descs[i: i + _BATCH_SIZE]
         try:
-            cats = await _call_with_fallback(descs)
+            cats = await _call_with_fallback(batch_descs)
         except Exception as e:
             _logger.warning("All models failed for batch %d: %s", i // _BATCH_SIZE + 1, e)
             cats = []
+        if len(cats) != len(batch_descs):
+            cats = ["Other"] * len(batch_descs)
+        llm_results.extend(c if c in _VALID else "Other" for c in cats)
 
-        if len(cats) != len(batch):
-            cats = ["Other"] * len(batch)
+    # Step 3: merge results back
+    llm_iter = iter(llm_results)
+    all_categories = [cat if cat is not None else next(llm_iter) for cat in pre]
 
-        all_categories.extend(c if c in _VALID else "Other" for c in cats)
+    rule_count = sum(1 for c in pre if c is not None)
+    _logger.info("Categorized %d via rules, %d via LLM", rule_count, len(unknown_indices))
 
     return [
         CategorizedTransaction(
