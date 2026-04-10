@@ -70,20 +70,35 @@ _BATCH_SIZE = 50  # stay within token limits
 
 async def _call_gemini_with_model(descriptions: list[str], model_name: str) -> list[str]:
     import google.generativeai as genai
+    import re
     if not _GEMINI_API_KEY:
         raise RuntimeError("GEMINI_API_KEY is not set. Check backend/.env.")
     genai.configure(api_key=_GEMINI_API_KEY)
+
+    # Gemma models don't support response_mime_type JSON mode
+    is_gemma = model_name.startswith("gemma")
+    generation_config = {} if is_gemma else {"response_mime_type": "application/json"}
+
     model = genai.GenerativeModel(
         model_name=model_name,
-        generation_config={"response_mime_type": "application/json"},
+        generation_config=generation_config,
     )
     prompt = _SYSTEM_PROMPT + "\n\nDescriptions:\n" + json.dumps(descriptions, ensure_ascii=False)
     loop = asyncio.get_running_loop()
     response = await asyncio.wait_for(
         loop.run_in_executor(None, model.generate_content, prompt),
-        timeout=30.0,  # fail fast so the next model in the chain can be tried
+        timeout=45.0,
     )
-    result = json.loads(response.text)
+    text = response.text.strip()
+
+    # For Gemma (plain text), extract the JSON array from the response
+    if is_gemma:
+        match = re.search(r'\[.*\]', text, re.DOTALL)
+        if not match:
+            raise ValueError(f"No JSON array found in Gemma response: {text[:200]}")
+        text = match.group(0)
+
+    result = json.loads(text)
     if isinstance(result, list):
         return result
     return result.get("categories", [])
