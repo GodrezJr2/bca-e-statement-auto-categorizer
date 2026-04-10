@@ -15,12 +15,12 @@ load_dotenv(dotenv_path=_ENV_PATH)
 _OPENROUTER_API_KEY: str | None = os.environ.get("OPENROUTER_API_KEY")
 
 # Free models on OpenRouter — tried in order until one succeeds.
-# All are :free tier with no per-token cost.
+# Verified working as of 2026-04 with this API key.
 _MODEL_FALLBACK_CHAIN: list[str] = [
-    "google/gemini-2.0-flash-exp:free",      # best quality, Gemini 2.0
-    "meta-llama/llama-3.3-70b-instruct:free", # reliable JSON follower
-    "qwen/qwen-2.5-72b-instruct:free",        # strong multilingual + JSON
-    "mistralai/mistral-7b-instruct:free",      # lightweight last resort
+    "openai/gpt-oss-120b:free",               # 120B, excellent JSON + instruction following
+    "nvidia/nemotron-3-super-120b-a12b:free", # 120B MoE, strong multilingual
+    "google/gemma-3-27b-it:free",             # Gemma 27B fallback
+    "meta-llama/llama-3.3-70b-instruct:free", # Llama 70B last resort
 ]
 
 CATEGORIES = [
