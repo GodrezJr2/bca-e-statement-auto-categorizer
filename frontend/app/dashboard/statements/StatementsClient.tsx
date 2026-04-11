@@ -63,27 +63,30 @@ export default function StatementsClient({ initialTransactions }: { initialTrans
   async function handleCategoryChange(txId: string, newCategory: string) {
     const supabase = createClient();
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
+    if (!session) { setEditingId(null); return; }
     const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-    if (!apiUrl) return;
+    if (!apiUrl) { setEditingId(null); return; }
 
-    const res = await fetch(`${apiUrl}/api/transactions/${txId}`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${session.access_token}`,
-      },
-      body: JSON.stringify({ category_name: newCategory }),
-    });
-    if (!res.ok) return;
+    try {
+      const res = await fetch(`${apiUrl}/api/transactions/${txId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ category_name: newCategory }),
+      });
+      if (!res.ok) return;
 
-    setTransactions(prev =>
-      prev.map(t => t.id === txId
-        ? { ...t, categories: { name: newCategory } }
-        : t
-      )
-    );
-    setEditingId(null);
+      setTransactions(prev =>
+        prev.map(t => t.id === txId
+          ? { ...t, categories: { name: newCategory } }
+          : t
+        )
+      );
+    } finally {
+      setEditingId(null);
+    }
   }
 
   return (
@@ -193,11 +196,11 @@ export default function StatementsClient({ initialTransactions }: { initialTrans
                           </td>
                         </tr>
                       )}
-                      {filtered.map((t, i) => {
+                      {filtered.map((t) => {
                         const cat = t.categories?.name ?? "Other";
                         const isDebit = t.amount < 0;
                         return (
-                          <tr key={i} style={{ borderBottom: "1px solid var(--border)" }}
+                          <tr key={t.id} style={{ borderBottom: "1px solid var(--border)" }}
                             className="transition-colors duration-100 hover:bg-violet-50/30">
                             <td className="px-4 py-3 text-xs font-mono"
                               style={{ color: "var(--text-muted)" }}>
