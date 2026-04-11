@@ -3,6 +3,7 @@ import { useState, useMemo } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { FileText, TrendingDown, TrendingUp, Search } from "lucide-react";
 import type { Transaction } from "@/lib/types";
+import { createClient } from "@/lib/supabase";
 
 function getMonthKey(d: string) { return d.slice(0, 7); }
 
@@ -31,18 +32,20 @@ const CAT_BADGE: Record<string, { bg: string; text: string }> = {
 export default function StatementsClient({ initialTransactions }: { initialTransactions: Transaction[] }) {
   const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [transactions, setTransactions] = useState(initialTransactions);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const months = useMemo(() => {
-    const set = new Set(initialTransactions.map(t => getMonthKey(t.transaction_date)));
+    const set = new Set(transactions.map(t => getMonthKey(t.transaction_date)));
     return Array.from(set).sort().reverse();
-  }, [initialTransactions]);
+  }, [transactions]);
 
   // Auto-select first month
   const activeMonth = selectedMonth ?? months[0] ?? null;
 
   const monthTx = useMemo(() =>
-    activeMonth ? initialTransactions.filter(t => getMonthKey(t.transaction_date) === activeMonth) : [],
-    [initialTransactions, activeMonth]
+    activeMonth ? transactions.filter(t => getMonthKey(t.transaction_date) === activeMonth) : [],
+    [transactions, activeMonth]
   );
 
   const filtered = useMemo(() => {
@@ -56,6 +59,32 @@ export default function StatementsClient({ initialTransactions }: { initialTrans
     const income  = monthTx.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0);
     return { expense, income, count: monthTx.length };
   }, [monthTx]);
+
+  async function handleCategoryChange(txId: string, newCategory: string) {
+    const supabase = createClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+    if (!apiUrl) return;
+
+    const res = await fetch(`${apiUrl}/api/transactions/${txId}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ category_name: newCategory }),
+    });
+    if (!res.ok) return;
+
+    setTransactions(prev =>
+      prev.map(t => t.id === txId
+        ? { ...t, categories: { name: newCategory } }
+        : t
+      )
+    );
+    setEditingId(null);
+  }
 
   return (
     <div className="flex min-h-screen" style={{ background: "var(--bg-main)", fontFamily: "DM Sans, sans-serif" }}>
@@ -79,7 +108,7 @@ export default function StatementsClient({ initialTransactions }: { initialTrans
               <p className="text-xs" style={{ color: "var(--text-muted)" }}>No statements uploaded yet.</p>
             )}
             {months.map(m => {
-              const cnt = initialTransactions.filter(t => getMonthKey(t.transaction_date) === m).length;
+              const cnt = transactions.filter(t => getMonthKey(t.transaction_date) === m).length;
               const isActive = m === activeMonth;
               return (
                 <button key={m} onClick={() => setSelectedMonth(m)}
@@ -179,13 +208,35 @@ export default function StatementsClient({ initialTransactions }: { initialTrans
                               {t.description}
                             </td>
                             <td className="px-4 py-3">
-                              <span className="px-2.5 py-0.5 rounded-full text-xs font-medium transition-colors duration-150"
-                                style={{
-                                  background: (CAT_BADGE[cat] ?? CAT_BADGE.Other).bg,
-                                  color: (CAT_BADGE[cat] ?? CAT_BADGE.Other).text,
-                                }}>
-                                {cat}
-                              </span>
+                              {editingId === t.id ? (
+                                <select
+                                  autoFocus
+                                  defaultValue={cat}
+                                  onBlur={() => setEditingId(null)}
+                                  onChange={e => handleCategoryChange(t.id, e.target.value)}
+                                  className="text-xs rounded-full px-2 py-0.5 outline-none border cursor-pointer"
+                                  style={{
+                                    background: (CAT_BADGE[cat] ?? CAT_BADGE.Other).bg,
+                                    color: (CAT_BADGE[cat] ?? CAT_BADGE.Other).text,
+                                    borderColor: (CAT_BADGE[cat] ?? CAT_BADGE.Other).text + "40",
+                                  }}>
+                                  {["Food","Transport","Utilities","Shopping","Subscription",
+                                    "Health","Entertainment","Transfer","Income","Other"].map(c => (
+                                    <option key={c} value={c}>{c}</option>
+                                  ))}
+                                </select>
+                              ) : (
+                                <button
+                                  onClick={() => setEditingId(t.id)}
+                                  title="Click to change category"
+                                  className="px-2.5 py-0.5 rounded-full text-xs font-medium transition-all duration-150 hover:opacity-80 cursor-pointer"
+                                  style={{
+                                    background: (CAT_BADGE[cat] ?? CAT_BADGE.Other).bg,
+                                    color: (CAT_BADGE[cat] ?? CAT_BADGE.Other).text,
+                                  }}>
+                                  {cat}
+                                </button>
+                              )}
                             </td>
                             <td className="px-4 py-3 text-xs font-semibold text-right"
                               style={{ color: isDebit ? "var(--expense-red)" : "var(--income-green)" }}>
