@@ -15,10 +15,17 @@ function formatCurrency(n: number) {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(Math.abs(n));
 }
 
-const CAT_COLORS: Record<string, string> = {
-  Food: "#F97316", Shopping: "#8B5CF6", Transport: "#06B6D4",
-  Entertainment: "#EC4899", Health: "#10B981", Bills: "#F59E0B",
-  Education: "#3B82F6", Travel: "#14B8A6", Investment: "#6366F1", Other: "#94A3B8",
+const CAT_BADGE: Record<string, { bg: string; text: string }> = {
+  Food:          { bg: "#FFF7ED", text: "#C2410C" },
+  Transport:     { bg: "#ECFEFF", text: "#0E7490" },
+  Utilities:     { bg: "#FEFCE8", text: "#A16207" },
+  Shopping:      { bg: "#FDF4FF", text: "#9333EA" },
+  Subscription:  { bg: "#F3E8FF", text: "#7C3AED" },
+  Health:        { bg: "#FEF2F2", text: "#B91C1C" },
+  Entertainment: { bg: "#EEF2FF", text: "#4338CA" },
+  Transfer:      { bg: "#EFF6FF", text: "#1D4ED8" },
+  Income:        { bg: "#F0FDF4", text: "#15803D" },
+  Other:         { bg: "#F8FAFC", text: "#64748B" },
 };
 
 export default function StatementsClient({ initialTransactions }: { initialTransactions: Transaction[] }) {
@@ -53,7 +60,7 @@ export default function StatementsClient({ initialTransactions }: { initialTrans
   return (
     <div className="flex min-h-screen" style={{ background: "var(--bg-main)", fontFamily: "DM Sans, sans-serif" }}>
       <Sidebar />
-      <main className="flex-1 md:ml-56 pt-16 md:pt-0 p-4 md:p-6">
+      <main className="flex-1 md:ml-56 pt-16 md:pt-0 p-4 md:p-6 animate-fadeIn">
 
         {/* Header */}
         <div className="mb-6">
@@ -78,8 +85,8 @@ export default function StatementsClient({ initialTransactions }: { initialTrans
                 <button key={m} onClick={() => setSelectedMonth(m)}
                   className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left transition-all"
                   style={{
-                    background: isActive ? "var(--accent-blue)" : "var(--bg-card)",
-                    border: `1px solid ${isActive ? "var(--accent-blue)" : "var(--border)"}`,
+                    background: isActive ? "var(--accent-gradient)" : "var(--bg-card)",
+                    border: `1px solid ${isActive ? "var(--accent-violet)" : "var(--border)"}`,
                   }}>
                   <FileText size={14} style={{ color: isActive ? "#fff" : "var(--text-muted)" }} />
                   <div>
@@ -107,7 +114,7 @@ export default function StatementsClient({ initialTransactions }: { initialTrans
                     { label: "Total Income",  value: monthStats.income,  icon: TrendingUp,   color: "var(--income-green)" },
                     { label: "Transactions",  value: monthStats.count,   icon: FileText,     color: "var(--accent-blue)" },
                   ].map(({ label, value, icon: Icon, color }) => (
-                    <div key={label} className="rounded-2xl p-4 flex items-center gap-3"
+                    <div key={label} className="rounded-2xl p-4 flex items-center gap-3 transition-all duration-150 hover:-translate-y-0.5 hover:shadow-md cursor-default"
                       style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
                       <div className="w-9 h-9 rounded-xl flex items-center justify-center"
                         style={{ background: color + "20" }}>
@@ -159,11 +166,10 @@ export default function StatementsClient({ initialTransactions }: { initialTrans
                       )}
                       {filtered.map((t, i) => {
                         const cat = t.categories?.name ?? "Other";
-                        const color = CAT_COLORS[cat] ?? "#94A3B8";
                         const isDebit = t.amount < 0;
                         return (
                           <tr key={i} style={{ borderBottom: "1px solid var(--border)" }}
-                            className="transition-colors hover:bg-slate-50">
+                            className="transition-colors duration-100 hover:bg-violet-50/30">
                             <td className="px-4 py-3 text-xs font-mono"
                               style={{ color: "var(--text-muted)" }}>
                               {t.transaction_date}
@@ -173,8 +179,11 @@ export default function StatementsClient({ initialTransactions }: { initialTrans
                               {t.description}
                             </td>
                             <td className="px-4 py-3">
-                              <span className="px-2 py-0.5 rounded-full text-xs font-medium"
-                                style={{ background: color + "20", color }}>
+                              <span className="px-2.5 py-0.5 rounded-full text-xs font-medium transition-colors duration-150"
+                                style={{
+                                  background: (CAT_BADGE[cat] ?? CAT_BADGE.Other).bg,
+                                  color: (CAT_BADGE[cat] ?? CAT_BADGE.Other).text,
+                                }}>
                                 {cat}
                               </span>
                             </td>
