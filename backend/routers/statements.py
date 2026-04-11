@@ -1,4 +1,6 @@
 import os
+import time
+from collections import defaultdict
 from fastapi import APIRouter, File, Form, UploadFile, HTTPException, Header
 from supabase import create_client, Client
 from dotenv import load_dotenv
@@ -14,6 +16,12 @@ router = APIRouter()
 # Service role key is required to call auth.get_user() and to insert rows
 # on behalf of the authenticated user (RLS is enforced via user_id from JWT).
 _supabase: Client | None = None
+
+# In-memory rate limit: max 10 uploads per user per hour.
+# Resets naturally on container restart (acceptable for single-user home server).
+_upload_counts: dict[str, list[float]] = defaultdict(list)
+_RATE_LIMIT_MAX    = 10
+_RATE_LIMIT_WINDOW = 3600  # seconds
 
 
 def _get_supabase() -> Client:
@@ -40,6 +48,13 @@ async def upload_statement(
         raise HTTPException(status_code=401, detail="Invalid auth token.")
     user_id = str(user_resp.user.id)
 
+    # Rate limit check
+    now = time.time()
+    _upload_counts[user_id] = [t for t in _upload_counts[user_id] if now - t < _RATE_LIMIT_WINDOW]
+    if len(_upload_counts[user_id]) >= _RATE_LIMIT_MAX:
+        raise HTTPException(status_code=429, detail="Upload limit reached. Max 10 uploads per hour.")
+    _upload_counts[user_id].append(now)
+
     # 2. Read PDF bytes in memory — never write to disk
     pdf_bytes = await file.read()
 
@@ -62,6 +77,8 @@ async def upload_statement(
         msg = str(e)
         if "password" in msg.lower():
             raise HTTPException(status_code=422, detail="Incorrect PDF password.")
+        raise HTTPException(status_code=422, detail="Could not parse the PDF. Check the file format.")
+    except Exception:
         raise HTTPException(status_code=422, detail="Could not parse the PDF. Check the file format.")
 
     # 4. Auto-categorize

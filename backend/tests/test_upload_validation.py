@@ -47,3 +47,28 @@ def test_accepts_valid_pdf_mime_and_magic(client):
     resp = _upload(client, b"%PDF-1.4 fake content")
     # Not a 400 from our validation — could be 422 from parser, that's ok
     assert resp.status_code != 400
+
+
+import time as time_module
+
+def test_rate_limit_blocks_after_10_uploads(client):
+    from routers.statements import _upload_counts
+    user_id = "test-user-id"
+    now = time_module.time()
+    # Pre-fill 10 recent uploads
+    _upload_counts[user_id] = [now - i for i in range(10)]
+
+    resp = _upload(client, b"%PDF-fake")
+    assert resp.status_code == 429
+    assert "limit" in resp.json()["detail"].lower()
+
+
+def test_rate_limit_allows_after_window_expires(client):
+    from routers.statements import _upload_counts
+    user_id = "test-user-id"
+    # All 10 uploads are older than 1 hour
+    _upload_counts[user_id] = [time_module.time() - 3700 for _ in range(10)]
+
+    resp = _upload(client, b"%PDF-fake")
+    # Should pass rate limit (will fail at PDF parsing, not 429)
+    assert resp.status_code != 429
