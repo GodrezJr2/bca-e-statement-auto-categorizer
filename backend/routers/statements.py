@@ -78,8 +78,6 @@ async def upload_statement(
         if "password" in msg.lower():
             raise HTTPException(status_code=422, detail="Incorrect PDF password.")
         raise HTTPException(status_code=422, detail="Could not parse the PDF. Check the file format.")
-    except Exception:
-        raise HTTPException(status_code=422, detail="Could not parse the PDF. Check the file format.")
 
     # 4. Auto-categorize
     categorized = await categorize_transactions(transactions)
