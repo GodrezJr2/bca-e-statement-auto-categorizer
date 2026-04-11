@@ -89,7 +89,7 @@ export default function AnalyticsClient({ initialTransactions }: { initialTransa
   return (
     <div className="flex min-h-screen" style={{ background: "var(--bg-main)", fontFamily: "DM Sans, sans-serif" }}>
       <Sidebar />
-      <main className="flex-1 md:ml-56 pt-16 md:pt-0 p-4 md:p-6">
+      <main className="flex-1 md:ml-56 pt-16 md:pt-0 p-4 md:p-6 animate-fadeIn">
 
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
@@ -108,7 +108,7 @@ export default function AnalyticsClient({ initialTransactions }: { initialTransa
               <button onClick={() => setSelectedMonth("all")}
                 className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
                 style={{
-                  background: selectedMonth === "all" ? "var(--accent-blue)" : "var(--bg-card)",
+                  background: selectedMonth === "all" ? "var(--accent-gradient)" : "var(--bg-card)",
                   color: selectedMonth === "all" ? "#fff" : "var(--text-secondary)",
                   border: "1px solid var(--border)",
                 }}>All Time</button>
@@ -116,7 +116,7 @@ export default function AnalyticsClient({ initialTransactions }: { initialTransa
                 <button key={m} onClick={() => setSelectedMonth(m)}
                   className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
                   style={{
-                    background: selectedMonth === m ? "var(--accent-blue)" : "var(--bg-card)",
+                    background: selectedMonth === m ? "var(--accent-gradient)" : "var(--bg-card)",
                     color: selectedMonth === m ? "#fff" : "var(--text-secondary)",
                     border: "1px solid var(--border)",
                   }}>
@@ -134,7 +134,7 @@ export default function AnalyticsClient({ initialTransactions }: { initialTransa
             { label: "Total Income",  value: `Rp ${formatCurrency(totalIncome)}`,  icon: TrendingUp,   color: "var(--income-green)" },
             { label: "Avg per Debit", value: `Rp ${formatCurrency(avgPerTx)}`,     icon: Repeat,       color: "var(--accent-blue)" },
           ].map(({ label, value, icon: Icon, color }) => (
-            <div key={label} className="rounded-2xl p-4 flex items-center gap-3"
+            <div key={label} className="rounded-2xl p-4 flex items-center gap-3 transition-all duration-150 hover:-translate-y-0.5 hover:shadow-md cursor-default"
               style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
               <div className="w-10 h-10 rounded-xl flex items-center justify-center"
                 style={{ background: color + "20" }}>
