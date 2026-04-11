@@ -55,7 +55,7 @@ export function StatsCard({ label, value, type, subtitle }: Props) {
     : animated.toLocaleString("id-ID");
 
   return (
-    <div className="rounded-2xl p-5" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
+    <div className="rounded-2xl p-5 transition-all duration-150 hover:-translate-y-0.5 hover:shadow-md cursor-default" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
       <div className="flex items-start justify-between mb-3">
         <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--text-muted)", fontFamily: "DM Sans, sans-serif" }}>
           {label}
