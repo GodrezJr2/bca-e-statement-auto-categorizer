@@ -1,5 +1,6 @@
 import os
 import time
+import logging
 from collections import defaultdict
 from fastapi import APIRouter, File, Form, UploadFile, HTTPException, Header
 from supabase import create_client, Client
@@ -11,6 +12,8 @@ from models.schemas import UploadResponse, CategorizedTransaction
 load_dotenv()
 
 router = APIRouter()
+
+_logger = logging.getLogger(__name__)
 
 
 # Service role key is required to call auth.get_user() and to insert rows
@@ -77,6 +80,9 @@ async def upload_statement(
         msg = str(e)
         if "password" in msg.lower():
             raise HTTPException(status_code=422, detail="Incorrect PDF password.")
+        raise HTTPException(status_code=422, detail="Could not parse the PDF. Check the file format.")
+    except Exception as e:
+        _logger.warning("PDF parser raised unexpected exception: %s", e)
         raise HTTPException(status_code=422, detail="Could not parse the PDF. Check the file format.")
 
     # 4. Auto-categorize
