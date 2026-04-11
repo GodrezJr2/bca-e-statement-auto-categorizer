@@ -17,3 +17,10 @@ class CategorizedTransaction(Transaction):
 class UploadResponse(BaseModel):
     inserted: int
     transactions: list[CategorizedTransaction]
+
+class CategoryUpdateRequest(BaseModel):
+    category_name: str
+
+class TransactionUpdateResponse(BaseModel):
+    id: str
+    category_name: str

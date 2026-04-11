@@ -7,7 +7,7 @@ from supabase import create_client, Client
 from dotenv import load_dotenv
 from services.pdf_parser import extract_transactions
 from services.categorizer import categorize_transactions
-from models.schemas import UploadResponse, CategorizedTransaction
+from models.schemas import UploadResponse, CategorizedTransaction, CategoryUpdateRequest, TransactionUpdateResponse
 
 load_dotenv()
 
@@ -123,3 +123,48 @@ async def upload_statement(
     supabase.table("transactions").insert(rows).execute()
 
     return UploadResponse(inserted=len(rows), transactions=categorized)
+
+
+VALID_CATEGORIES = {
+    "Food", "Transport", "Utilities", "Shopping", "Subscription",
+    "Health", "Entertainment", "Transfer", "Income", "Other",
+}
+
+@router.patch("/transactions/{transaction_id}", response_model=TransactionUpdateResponse)
+async def update_transaction_category(
+    transaction_id: str,
+    body: CategoryUpdateRequest,
+    authorization: str = Header(...),
+):
+    if body.category_name not in VALID_CATEGORIES:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Invalid category. Must be one of: {', '.join(sorted(VALID_CATEGORIES))}"
+        )
+
+    supabase = _get_supabase()
+    jwt = authorization.removeprefix("Bearer ").strip()
+    user_resp = supabase.auth.get_user(jwt)
+    if not user_resp.user:
+        raise HTTPException(status_code=401, detail="Invalid auth token.")
+    user_id = str(user_resp.user.id)
+
+    # Look up category UUID
+    cats_resp = supabase.table("categories").select("id, name").execute()
+    cat_map: dict[str, str] = {row["name"]: row["id"] for row in cats_resp.data}
+    cat_id = cat_map.get(body.category_name)
+    if not cat_id:
+        raise HTTPException(status_code=422, detail=f"Category '{body.category_name}' not found in DB.")
+
+    # Update — filter by both id AND user_id so users can't edit others' transactions
+    result = (
+        supabase.table("transactions")
+        .update({"category_id": cat_id})
+        .eq("id", transaction_id)
+        .eq("user_id", user_id)
+        .execute()
+    )
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Transaction not found.")
+
+    return TransactionUpdateResponse(id=transaction_id, category_name=body.category_name)
