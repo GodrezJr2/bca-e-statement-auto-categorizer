@@ -89,8 +89,8 @@ export function UploadForm({ onSuccess }: UploadFormProps) {
           onClick={() => inputRef.current?.click()}
           className="relative rounded-xl border-2 border-dashed cursor-pointer transition-all duration-200 flex flex-col items-center justify-center py-6 px-4 text-center"
           style={{
-            borderColor: dragging ? "var(--accent-blue)" : "var(--border)",
-            background: dragging ? "#EFF6FF" : "#F8FAFC",
+            borderColor: dragging ? "var(--accent-violet)" : "var(--border)",
+            background: dragging ? "#F3E8FF" : "#F8FAFC",
           }}>
           <input ref={inputRef} type="file" accept=".pdf" className="hidden"
             onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
@@ -137,7 +137,9 @@ export function UploadForm({ onSuccess }: UploadFormProps) {
         <button type="submit" disabled={!file || status === "uploading"}
           className="w-full py-2.5 rounded-xl text-sm font-semibold text-white transition-all flex items-center justify-center gap-2"
           style={{
-            background: !file || status === "uploading" ? "#CBD5E1" : "var(--accent-blue)",
+            background: !file || status === "uploading"
+              ? "#CBD5E1"
+              : "var(--accent-gradient)",
             cursor: !file || status === "uploading" ? "not-allowed" : "pointer",
           }}>
           {status === "uploading" ? (
