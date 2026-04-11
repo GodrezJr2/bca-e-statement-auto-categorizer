@@ -99,7 +99,7 @@ export function Sidebar() {
         className="md:hidden fixed top-0 left-0 right-0 z-20 flex items-center justify-between px-4 py-3">
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-lg flex items-center justify-center"
-            style={{ background: "var(--accent-blue)" }}>
+            style={{ background: "var(--accent-gradient)" }}>
             <span className="text-white text-xs font-bold" style={{ fontFamily: "Sora, sans-serif" }}>BCA</span>
           </div>
           <p className="text-sm font-semibold" style={{ fontFamily: "Sora, sans-serif", color: "var(--text-primary)" }}>e-Statement</p>
