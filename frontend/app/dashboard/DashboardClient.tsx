@@ -65,7 +65,7 @@ export default function DashboardClient({ initialTransactions }: { initialTransa
     const supabase = createClient();
     const { data, error } = await supabase
       .from("transactions")
-      .select("transaction_date, description, amount, categories(name)")
+      .select("id, transaction_date, description, amount, categories(name)")
       .order("transaction_date", { ascending: false });
     if (error) { console.error("Refresh failed:", error.message); return; }
     setTransactions((data as unknown as Transaction[]) ?? []);

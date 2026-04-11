@@ -10,7 +10,7 @@ export default async function StatementsPage() {
 
   const { data: transactions } = await supabase
     .from("transactions")
-    .select("transaction_date, description, amount, categories(name)")
+    .select("id, transaction_date, description, amount, categories(name)")
     .order("transaction_date", { ascending: false });
 
   return <StatementsClient initialTransactions={(transactions as unknown as Transaction[]) ?? []} />;

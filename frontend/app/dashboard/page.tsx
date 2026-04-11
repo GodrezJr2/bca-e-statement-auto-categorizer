@@ -10,7 +10,7 @@ export default async function DashboardPage() {
 
   const { data: transactions } = await supabase
     .from("transactions")
-    .select("transaction_date, description, amount, categories(name)")
+    .select("id, transaction_date, description, amount, categories(name)")
     .order("transaction_date", { ascending: false });
 
   return <DashboardClient initialTransactions={(transactions as unknown as Transaction[]) ?? []} />;
