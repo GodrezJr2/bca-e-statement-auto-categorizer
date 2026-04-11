@@ -43,6 +43,18 @@ async def upload_statement(
     # 2. Read PDF bytes in memory — never write to disk
     pdf_bytes = await file.read()
 
+    # 2a. Validate MIME type
+    if file.content_type != "application/pdf":
+        raise HTTPException(status_code=400, detail="Only PDF files are accepted.")
+
+    # 2b. Validate magic bytes (%PDF-)
+    if pdf_bytes[:5] != b"%PDF-":
+        raise HTTPException(status_code=400, detail="File does not appear to be a valid PDF.")
+
+    # 2c. Validate file size (10 MB max)
+    if len(pdf_bytes) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="File exceeds the 10 MB limit.")
+
     # 3. Decrypt + parse
     try:
         transactions = extract_transactions(pdf_bytes, password or None)
