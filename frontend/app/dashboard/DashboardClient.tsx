@@ -76,7 +76,7 @@ export default function DashboardClient({ initialTransactions }: { initialTransa
       <Sidebar />
 
       {/* Main content */}
-      <main className="flex-1 md:ml-56 pt-16 md:pt-0 p-4 md:p-6 min-h-screen">
+      <main className="flex-1 md:ml-56 pt-16 md:pt-0 p-4 md:p-6 min-h-screen animate-fadeIn">
 
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
@@ -95,7 +95,7 @@ export default function DashboardClient({ initialTransactions }: { initialTransa
               <button onClick={() => setSelectedMonth("all")}
                 className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
                 style={{
-                  background: selectedMonth === "all" ? "var(--accent-blue)" : "var(--bg-card)",
+                  background: selectedMonth === "all" ? "var(--accent-gradient)" : "var(--bg-card)",
                   color: selectedMonth === "all" ? "#fff" : "var(--text-secondary)",
                   border: "1px solid var(--border)",
                 }}>
@@ -105,7 +105,7 @@ export default function DashboardClient({ initialTransactions }: { initialTransa
                 <button key={m} onClick={() => setSelectedMonth(m)}
                   className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
                   style={{
-                    background: selectedMonth === m ? "var(--accent-blue)" : "var(--bg-card)",
+                    background: selectedMonth === m ? "var(--accent-gradient)" : "var(--bg-card)",
                     color: selectedMonth === m ? "#fff" : "var(--text-secondary)",
                     border: "1px solid var(--border)",
                   }}>
@@ -146,10 +146,10 @@ export default function DashboardClient({ initialTransactions }: { initialTransa
                       <button key={m} onClick={() => setSelectedMonth(m)}
                         className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-left transition-all"
                         style={{
-                          background: selectedMonth === m ? "#EFF6FF" : "#F8FAFC",
-                          border: `1px solid ${selectedMonth === m ? "var(--accent-blue-light)" : "var(--border)"}`,
+                          background: selectedMonth === m ? "#F5F3FF" : "#F8FAFC",
+                          border: `1px solid ${selectedMonth === m ? "var(--accent-violet)" : "var(--border)"}`,
                         }}>
-                        <span className="text-xs font-semibold" style={{ color: selectedMonth === m ? "var(--accent-blue)" : "var(--text-primary)" }}>
+                        <span className="text-xs font-semibold" style={{ color: selectedMonth === m ? "var(--accent-violet)" : "var(--text-primary)" }}>
                           {formatMonthLabel(m)}
                         </span>
                         <span className="text-xs" style={{ color: "var(--text-muted)" }}>{count} txn</span>
