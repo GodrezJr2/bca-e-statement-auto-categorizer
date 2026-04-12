@@ -2,6 +2,11 @@ import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import patch, MagicMock
 
+# IMPORTANT: GET /api/transactions/export must be declared in statements.py
+# BEFORE the PATCH /api/transactions/{transaction_id} route. FastAPI matches
+# routes in declaration order; if the parameterized route comes first, the
+# string "export" is captured as `transaction_id` and returns 405.
+
 
 @pytest.fixture
 def client():
