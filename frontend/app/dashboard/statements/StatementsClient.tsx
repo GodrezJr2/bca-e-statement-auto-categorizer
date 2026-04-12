@@ -150,10 +150,10 @@ export default function StatementsClient({ initialTransactions }: { initialTrans
                 Statements
               </h1>
               <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
-                Browse transactions by month
+                {isGlobalMode ? "Showing results across all months" : "Browse transactions by month"}
               </p>
             </div>
-            {activeMonth && (
+            {activeMonth && !isGlobalMode && (
               <div className="flex flex-col items-end gap-1">
                 <button
                   onClick={handleExport}
