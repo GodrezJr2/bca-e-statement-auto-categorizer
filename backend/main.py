@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from routers import statements
+from routers import insights
 
 load_dotenv()
 
@@ -26,3 +27,4 @@ app.add_middleware(
 )
 
 app.include_router(statements.router, prefix="/api")
+app.include_router(insights.router, prefix="/api")

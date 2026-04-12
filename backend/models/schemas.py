@@ -24,3 +24,7 @@ class CategoryUpdateRequest(BaseModel):
 class TransactionUpdateResponse(BaseModel):
     id: str
     category_name: str
+
+class InsightsResponse(BaseModel):
+    month: str
+    insights: list[str]
