@@ -180,8 +180,8 @@ async def export_transactions(
         for row in result.data:
             cat_name = (row.get("categories") or {}).get("name", "Other")
             writer.writerow([
-                row["transaction_date"],
-                row["description"],
+                row.get("transaction_date", ""),
+                row.get("description", ""),
                 int(row["amount"]) if row.get("amount") is not None else 0,
                 cat_name,
             ])

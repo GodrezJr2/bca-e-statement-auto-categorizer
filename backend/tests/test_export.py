@@ -79,3 +79,42 @@ def test_export_invalid_month_format_returns_422(client):
 def test_export_missing_auth_returns_422(client):
     resp = client.get("/api/transactions/export?month=2024-03")
     assert resp.status_code == 422
+
+
+def test_export_invalid_month_zero_returns_422(client):
+    resp = client.get(
+        "/api/transactions/export?month=2024-00",
+        headers={"Authorization": "Bearer fake-jwt"},
+    )
+    assert resp.status_code == 422
+
+
+def test_export_invalid_month_13_returns_422(client):
+    resp = client.get(
+        "/api/transactions/export?month=2024-13",
+        headers={"Authorization": "Bearer fake-jwt"},
+    )
+    assert resp.status_code == 422
+
+
+def test_export_db_error_returns_500(client):
+    with patch("routers.statements._get_supabase") as mock_supa:
+        mock_user = MagicMock()
+        mock_user.user.id = "user-123"
+        mock_supa.return_value.auth.get_user.return_value = mock_user
+
+        mock_chain = MagicMock()
+        mock_chain.eq.return_value = mock_chain
+        mock_chain.gte.return_value = mock_chain
+        mock_chain.lt.return_value = mock_chain
+        mock_chain.order.return_value = mock_chain
+        mock_chain.execute.side_effect = Exception("DB connection failed")
+        mock_supa.return_value.table.return_value.select.return_value = mock_chain
+
+        from main import app
+        test_client = TestClient(app)
+        resp = test_client.get(
+            "/api/transactions/export?month=2024-03",
+            headers={"Authorization": "Bearer fake-jwt"},
+        )
+        assert resp.status_code == 500
