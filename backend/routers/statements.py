@@ -1,8 +1,12 @@
+import csv
+import io
 import os
+import re
 import time
 import logging
 from collections import defaultdict
 from fastapi import APIRouter, File, Form, UploadFile, HTTPException, Header
+from fastapi.responses import StreamingResponse
 from supabase import create_client, Client
 from dotenv import load_dotenv
 from services.pdf_parser import extract_transactions
@@ -129,6 +133,64 @@ VALID_CATEGORIES = {
     "Food", "Transport", "Utilities", "Shopping", "Subscription",
     "Health", "Entertainment", "Transfer", "Income", "Other",
 }
+
+
+@router.get("/transactions/export")
+async def export_transactions(
+    month: str,
+    authorization: str = Header(...),
+):
+    # Validate month format YYYY-MM
+    if not re.fullmatch(r"\d{4}-\d{2}", month):
+        raise HTTPException(status_code=422, detail="month must be in YYYY-MM format.")
+
+    supabase = _get_supabase()
+    jwt = authorization.removeprefix("Bearer ").strip()
+    user_resp = supabase.auth.get_user(jwt)
+    if not user_resp.user:
+        raise HTTPException(status_code=401, detail="Invalid auth token.")
+    user_id = str(user_resp.user.id)
+
+    # Compute date range for the month
+    y, m = int(month[:4]), int(month[5:7])
+    month_start = f"{month}-01"
+    if m == 12:
+        month_end = f"{y + 1}-01-01"
+    else:
+        month_end = f"{y}-{m + 1:02d}-01"
+
+    result = (
+        supabase.table("transactions")
+        .select("transaction_date, description, amount, categories(name)")
+        .eq("user_id", user_id)
+        .gte("transaction_date", month_start)
+        .lt("transaction_date", month_end)
+        .execute()
+    )
+
+    def generate():
+        buf = io.StringIO()
+        writer = csv.writer(buf)
+        writer.writerow(["Date", "Description", "Amount (IDR)", "Category"])
+        yield buf.getvalue()
+        for row in result.data:
+            buf = io.StringIO()
+            writer = csv.writer(buf)
+            cat_name = (row.get("categories") or {}).get("name", "Other")
+            writer.writerow([
+                row["transaction_date"],
+                row["description"],
+                int(row["amount"]),
+                cat_name,
+            ])
+            yield buf.getvalue()
+
+    return StreamingResponse(
+        generate(),
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="statement-{month}.csv"'},
+    )
+
 
 @router.patch("/transactions/{transaction_id}", response_model=TransactionUpdateResponse)
 async def update_transaction_category(
