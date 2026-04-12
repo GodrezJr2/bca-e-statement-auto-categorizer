@@ -35,6 +35,7 @@ export default function StatementsClient({ initialTransactions }: { initialTrans
   const [transactions, setTransactions] = useState(initialTransactions);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
 
   const months = useMemo(() => {
     const set = new Set(transactions.map(t => getMonthKey(t.transaction_date)));
@@ -93,30 +94,33 @@ export default function StatementsClient({ initialTransactions }: { initialTrans
   async function handleExport() {
     if (isExporting) return;
     setIsExporting(true);
+    setExportError(null);
+    let url: string | null = null;
     try {
       const supabase = createClient();
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session || !activeMonth) return;
+      if (!session || !activeMonth) { setExportError("Not signed in."); return; }
       const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-      if (!apiUrl) return;
+      if (!apiUrl) { setExportError("API not configured."); return; }
 
       const res = await fetch(`${apiUrl}/api/transactions/export?month=${activeMonth}`, {
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
-      if (!res.ok) return;
+      if (!res.ok) { setExportError("Export failed. Please try again."); return; }
 
       const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
+      url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
       a.download = `statement-${activeMonth}.csv`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      URL.revokeObjectURL(url);
     } catch (err) {
       console.error("Export failed:", err);
+      setExportError("Export failed. Please try again.");
     } finally {
+      if (url) URL.revokeObjectURL(url);
       setIsExporting(false);
     }
   }
@@ -137,14 +141,19 @@ export default function StatementsClient({ initialTransactions }: { initialTrans
             </p>
           </div>
           {activeMonth && (
-            <button
-              onClick={handleExport}
-              disabled={isExporting}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ background: "var(--accent-gradient)", color: "#fff" }}>
-              <Download size={13} />
-              {isExporting ? "Exporting…" : "Export CSV"}
-            </button>
+            <div className="flex flex-col items-end gap-1">
+              <button
+                onClick={handleExport}
+                disabled={isExporting}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none"
+                style={{ background: "var(--accent-gradient)", color: "#fff" }}>
+                <Download size={13} />
+                {isExporting ? "Exporting…" : "Export CSV"}
+              </button>
+              {exportError && (
+                <p className="text-xs" style={{ color: "var(--expense-red)" }}>{exportError}</p>
+              )}
+            </div>
           )}
         </div>
 
