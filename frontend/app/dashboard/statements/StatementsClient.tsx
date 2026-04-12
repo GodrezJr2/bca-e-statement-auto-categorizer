@@ -1,7 +1,7 @@
 "use client";
 import { useState, useMemo } from "react";
 import { Sidebar } from "@/components/Sidebar";
-import { FileText, TrendingDown, TrendingUp, Search } from "lucide-react";
+import { FileText, TrendingDown, TrendingUp, Search, Download } from "lucide-react";
 import type { Transaction } from "@/lib/types";
 import { createClient } from "@/lib/supabase";
 
@@ -89,19 +89,51 @@ export default function StatementsClient({ initialTransactions }: { initialTrans
     }
   }
 
+  async function handleExport() {
+    const supabase = createClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session || !activeMonth) return;
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+    if (!apiUrl) return;
+
+    const res = await fetch(`${apiUrl}/api/transactions/export?month=${activeMonth}`, {
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    });
+    if (!res.ok) return;
+
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `statement-${activeMonth}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <div className="flex min-h-screen" style={{ background: "var(--bg-main)", fontFamily: "DM Sans, sans-serif" }}>
       <Sidebar />
       <main className="flex-1 md:ml-56 pt-16 md:pt-0 p-4 md:p-6 animate-fadeIn">
 
         {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-xl font-bold" style={{ fontFamily: "Sora, sans-serif", color: "var(--text-primary)" }}>
-            Statements
-          </h1>
-          <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
-            Browse transactions by month
-          </p>
+        <div className="mb-6 flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-xl font-bold" style={{ fontFamily: "Sora, sans-serif", color: "var(--text-primary)" }}>
+              Statements
+            </h1>
+            <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
+              Browse transactions by month
+            </p>
+          </div>
+          {activeMonth && (
+            <button
+              onClick={handleExport}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all hover:opacity-80"
+              style={{ background: "var(--accent-gradient)", color: "#fff" }}>
+              <Download size={13} />
+              Export CSV
+            </button>
+          )}
         </div>
 
         <div className="flex flex-col sm:flex-row gap-4">
