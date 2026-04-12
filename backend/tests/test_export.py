@@ -97,7 +97,7 @@ def test_export_invalid_month_13_returns_422(client):
     assert resp.status_code == 422
 
 
-def test_export_db_error_returns_500(client):
+def test_export_db_error_returns_500():
     with patch("routers.statements._get_supabase") as mock_supa:
         mock_user = MagicMock()
         mock_user.user.id = "user-123"
