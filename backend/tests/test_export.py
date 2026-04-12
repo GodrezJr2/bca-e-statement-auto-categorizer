@@ -20,6 +20,7 @@ def client():
         mock_chain.eq.return_value = mock_chain
         mock_chain.gte.return_value = mock_chain
         mock_chain.lt.return_value = mock_chain
+        mock_chain.order.return_value = mock_chain
         mock_chain.execute.return_value.data = [
             {
                 "transaction_date": "2024-03-05",

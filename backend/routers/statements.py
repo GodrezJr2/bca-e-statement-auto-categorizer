@@ -140,8 +140,8 @@ async def export_transactions(
     month: str,
     authorization: str = Header(...),
 ):
-    # Validate month format YYYY-MM
-    if not re.fullmatch(r"\d{4}-\d{2}", month):
+    # Validate month format YYYY-MM and valid month range
+    if not re.fullmatch(r"\d{4}-\d{2}", month) or not (1 <= int(month[5:7]) <= 12):
         raise HTTPException(status_code=422, detail="month must be in YYYY-MM format.")
 
     supabase = _get_supabase()
@@ -159,35 +159,38 @@ async def export_transactions(
     else:
         month_end = f"{y}-{m + 1:02d}-01"
 
-    result = (
-        supabase.table("transactions")
-        .select("transaction_date, description, amount, categories(name)")
-        .eq("user_id", user_id)
-        .gte("transaction_date", month_start)
-        .lt("transaction_date", month_end)
-        .execute()
-    )
+    try:
+        result = (
+            supabase.table("transactions")
+            .select("transaction_date, description, amount, categories(name)")
+            .eq("user_id", user_id)
+            .gte("transaction_date", month_start)
+            .lt("transaction_date", month_end)
+            .order("transaction_date")
+            .execute()
+        )
+    except Exception as exc:
+        _logger.error("Supabase query failed in export_transactions: %s", exc)
+        raise HTTPException(status_code=500, detail="Failed to retrieve transactions.")
 
     def generate():
         buf = io.StringIO()
         writer = csv.writer(buf)
         writer.writerow(["Date", "Description", "Amount (IDR)", "Category"])
-        yield buf.getvalue()
         for row in result.data:
-            buf = io.StringIO()
-            writer = csv.writer(buf)
             cat_name = (row.get("categories") or {}).get("name", "Other")
             writer.writerow([
                 row["transaction_date"],
                 row["description"],
-                int(row["amount"]),
+                int(row["amount"]) if row.get("amount") is not None else 0,
                 cat_name,
             ])
-            yield buf.getvalue()
+        buf.seek(0)
+        yield buf.read()
 
     return StreamingResponse(
         generate(),
-        media_type="text/csv",
+        media_type="text/csv; charset=utf-8",
         headers={"Content-Disposition": f'attachment; filename="statement-{month}.csv"'},
     )
 
