@@ -34,6 +34,7 @@ export default function StatementsClient({ initialTransactions }: { initialTrans
   const [search, setSearch] = useState("");
   const [transactions, setTransactions] = useState(initialTransactions);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
 
   const months = useMemo(() => {
     const set = new Set(transactions.map(t => getMonthKey(t.transaction_date)));
@@ -90,24 +91,34 @@ export default function StatementsClient({ initialTransactions }: { initialTrans
   }
 
   async function handleExport() {
-    const supabase = createClient();
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session || !activeMonth) return;
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-    if (!apiUrl) return;
+    if (isExporting) return;
+    setIsExporting(true);
+    try {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session || !activeMonth) return;
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+      if (!apiUrl) return;
 
-    const res = await fetch(`${apiUrl}/api/transactions/export?month=${activeMonth}`, {
-      headers: { Authorization: `Bearer ${session.access_token}` },
-    });
-    if (!res.ok) return;
+      const res = await fetch(`${apiUrl}/api/transactions/export?month=${activeMonth}`, {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (!res.ok) return;
 
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `statement-${activeMonth}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `statement-${activeMonth}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Export failed:", err);
+    } finally {
+      setIsExporting(false);
+    }
   }
 
   return (
@@ -128,10 +139,11 @@ export default function StatementsClient({ initialTransactions }: { initialTrans
           {activeMonth && (
             <button
               onClick={handleExport}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all hover:opacity-80"
+              disabled={isExporting}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ background: "var(--accent-gradient)", color: "#fff" }}>
               <Download size={13} />
-              Export CSV
+              {isExporting ? "Exporting…" : "Export CSV"}
             </button>
           )}
         </div>
