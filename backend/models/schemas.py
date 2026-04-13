@@ -28,3 +28,16 @@ class TransactionUpdateResponse(BaseModel):
 class InsightsResponse(BaseModel):
     month: str
     insights: list[str]
+
+
+from pydantic import Field as _Field
+
+class BudgetItem(BaseModel):
+    category: str
+    monthly_limit: int
+
+class BudgetsResponse(BaseModel):
+    budgets: list[BudgetItem]
+
+class BudgetUpsertRequest(BaseModel):
+    monthly_limit: int = _Field(gt=0, description="Monthly spending limit in IDR, must be > 0")
