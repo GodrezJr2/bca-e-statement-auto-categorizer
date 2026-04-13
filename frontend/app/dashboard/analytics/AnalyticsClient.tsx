@@ -1,5 +1,5 @@
 "use client";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { SpendingPieChart } from "@/components/SpendingPieChart";
 import { DailyBarChart } from "@/components/DailyBarChart";
@@ -9,6 +9,8 @@ import {
   BarChart, Bar,
 } from "recharts";
 import type { Transaction } from "@/lib/types";
+import { createClient } from "@/lib/supabase";
+import { Lightbulb } from "lucide-react";
 
 function getMonthKey(d: string) { return d.slice(0, 7); }
 
@@ -31,6 +33,8 @@ const CAT_COLORS: Record<string, string> = {
 
 export default function AnalyticsClient({ initialTransactions }: { initialTransactions: Transaction[] }) {
   const [selectedMonth, setSelectedMonth] = useState<string>("all");
+  const [insights, setInsights] = useState<string[]>([]);
+  const [insightsLoading, setInsightsLoading] = useState(false);
 
   const months = useMemo(() => {
     const set = new Set(initialTransactions.map(t => getMonthKey(t.transaction_date)));
@@ -85,6 +89,36 @@ export default function AnalyticsClient({ initialTransactions }: { initialTransa
     const debits = filtered.filter(t => t.amount < 0);
     return debits.length ? totalExpense / debits.length : 0;
   }, [filtered, totalExpense]);
+
+  useEffect(() => {
+    if (selectedMonth === "all") {
+      setInsights([]);
+      return;
+    }
+    let cancelled = false;
+    async function fetchInsights() {
+      setInsightsLoading(true);
+      try {
+        const supabase = createClient();
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+        if (!apiUrl) return;
+        const res = await fetch(`${apiUrl}/api/insights?month=${selectedMonth}`, {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!cancelled) setInsights(data.insights ?? []);
+      } catch (err) {
+        console.error("Failed to fetch insights:", err);
+      } finally {
+        if (!cancelled) setInsightsLoading(false);
+      }
+    }
+    fetchInsights();
+    return () => { cancelled = true; };
+  }, [selectedMonth]);
 
   return (
     <div className="flex min-h-screen" style={{ background: "var(--bg-main)", fontFamily: "DM Sans, sans-serif" }}>
@@ -215,6 +249,48 @@ export default function AnalyticsClient({ initialTransactions }: { initialTransa
             <SpendingPieChart data={categoryData} />
           </div>
         </div>
+
+        {/* Insights card — only when a specific month is selected */}
+        {selectedMonth !== "all" && (
+          <div className="mt-4 rounded-2xl p-5" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-7 h-7 rounded-lg flex items-center justify-center"
+                style={{ background: "var(--accent-gradient)" }}>
+                <Lightbulb size={13} style={{ color: "#fff" }} />
+              </div>
+              <h3 className="text-sm font-semibold" style={{ fontFamily: "Sora, sans-serif", color: "var(--text-primary)" }}>
+                Insights
+              </h3>
+            </div>
+
+            {insightsLoading && (
+              <div className="space-y-2">
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="h-8 rounded-xl shimmer" />
+                ))}
+              </div>
+            )}
+
+            {!insightsLoading && insights.length === 0 && (
+              <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+                No insights available for this month yet.
+              </p>
+            )}
+
+            {!insightsLoading && insights.length > 0 && (
+              <ul className="space-y-2">
+                {insights.map((text, i) => (
+                  <li key={i} className="flex items-start gap-2.5 px-3 py-2.5 rounded-xl text-xs"
+                    style={{ background: "var(--bg-main)", color: "var(--text-primary)" }}>
+                    <span className="mt-0.5 shrink-0 w-1.5 h-1.5 rounded-full"
+                      style={{ background: "var(--accent-violet)" }} />
+                    {text}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
 
       </main>
     </div>
