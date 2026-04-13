@@ -6,6 +6,7 @@ import { UploadForm } from "@/components/UploadForm";
 import { SpendingPieChart } from "@/components/SpendingPieChart";
 import { DailyBarChart } from "@/components/DailyBarChart";
 import { LargestTransactions } from "@/components/LargestTransactions";
+import { BudgetTracker } from "@/components/BudgetTracker";
 import { createClient } from "@/lib/supabase";
 import type { Transaction } from "@/lib/types";
 
@@ -60,6 +61,16 @@ export default function DashboardClient({ initialTransactions }: { initialTransa
   const barData  = useMemo(() => buildBarData(filtered), [filtered]);
   const totalExpense = useMemo(() => filtered.filter(t => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0), [filtered]);
   const totalIncome  = useMemo(() => filtered.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0), [filtered]);
+
+  const spendByCategory = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const t of filtered) {
+      if (t.amount >= 0) continue;
+      const cat = t.categories?.name ?? "Other";
+      map[cat] = (map[cat] ?? 0) + Math.abs(t.amount);
+    }
+    return map;
+  }, [filtered]);
 
   async function refresh() {
     const supabase = createClient();
@@ -195,6 +206,13 @@ export default function DashboardClient({ initialTransactions }: { initialTransa
             </div>
           </div>
         </div>
+
+        {/* Budget Tracker — only when a specific month is selected */}
+        {selectedMonth !== "all" && (
+          <div className="mt-4">
+            <BudgetTracker spendByCategory={spendByCategory} />
+          </div>
+        )}
       </main>
     </div>
   );
