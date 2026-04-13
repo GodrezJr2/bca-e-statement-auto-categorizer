@@ -3,14 +3,13 @@ import { useState, useMemo, useEffect } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { SpendingPieChart } from "@/components/SpendingPieChart";
 import { DailyBarChart } from "@/components/DailyBarChart";
-import { TrendingDown, TrendingUp, Repeat } from "lucide-react";
+import { TrendingDown, TrendingUp, Repeat, Lightbulb } from "lucide-react";
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend,
   BarChart, Bar,
 } from "recharts";
 import type { Transaction } from "@/lib/types";
 import { createClient } from "@/lib/supabase";
-import { Lightbulb } from "lucide-react";
 
 function getMonthKey(d: string) { return d.slice(0, 7); }
 
