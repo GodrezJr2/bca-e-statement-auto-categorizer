@@ -58,7 +58,7 @@ def _compute_insights(current_rows: list[dict], prior_rows: list[dict]) -> list[
     # 1. Largest expense category
     if current_cat:
         top_cat, top_val = max(current_cat.items(), key=lambda x: x[1])
-        formatted = f"Rp {int(top_val):,}".replace(",", ".")
+        formatted = f"Rp {round(top_val):,}".replace(",", ".")
         insights.append(f"Largest category this month: {top_cat} ({formatted})")
 
     # 2. Category changes vs prior month (only report >= 10% moves)
@@ -74,19 +74,22 @@ def _compute_insights(current_rows: list[dict], prior_rows: list[dict]) -> list[
         direction = "up" if pct > 0 else "down"
         insights.append(f"{cat} spending {direction} {abs(pct):.0f}% vs last month")
 
-    # 3. Unusually large transactions (> 2x per-category average)
-    cat_sum: dict[str, float] = {}
-    cat_counts: dict[str, int] = {}
-    for row in expense_rows:
+    # 3. Unusually large transactions (> 2x prior month's per-category average)
+    # Using prior month as baseline so single-transaction months can still be flagged.
+    prior_cat_sum: dict[str, float] = {}
+    prior_cat_counts: dict[str, int] = {}
+    for row in [r for r in prior_rows if r.get("amount", 0) < 0]:
         cat = (row.get("categories") or {}).get("name", "Other")
-        cat_sum[cat] = cat_sum.get(cat, 0.0) + abs(row.get("amount", 0))
-        cat_counts[cat] = cat_counts.get(cat, 0) + 1
-    cat_avg = {cat: cat_sum[cat] / cat_counts[cat] for cat in cat_sum}
+        prior_cat_sum[cat] = prior_cat_sum.get(cat, 0.0) + abs(row.get("amount", 0))
+        prior_cat_counts[cat] = prior_cat_counts.get(cat, 0) + 1
+    prior_cat_avg = {
+        cat: prior_cat_sum[cat] / prior_cat_counts[cat] for cat in prior_cat_sum
+    }
 
     large_count = 0
     for row in expense_rows:
         cat = (row.get("categories") or {}).get("name", "Other")
-        if cat in cat_avg and abs(row.get("amount", 0)) > 2 * cat_avg[cat]:
+        if cat in prior_cat_avg and abs(row.get("amount", 0)) > 2 * prior_cat_avg[cat]:
             large_count += 1
 
     if large_count > 0:
@@ -103,7 +106,11 @@ async def get_insights(month: str, authorization: str = Header(...)):
 
     supabase = _get_supabase()
     jwt = authorization.removeprefix("Bearer ").strip()
-    user_resp = supabase.auth.get_user(jwt)
+    try:
+        user_resp = supabase.auth.get_user(jwt)
+    except Exception as exc:
+        _logger.warning("auth.get_user failed in get_insights: %s", exc)
+        raise HTTPException(status_code=401, detail="Invalid auth token.")
     if not user_resp.user:
         raise HTTPException(status_code=401, detail="Invalid auth token.")
     user_id = str(user_resp.user.id)
