@@ -100,13 +100,13 @@ export default function AnalyticsClient({ initialTransactions }: { initialTransa
       try {
         const supabase = createClient();
         const { data: { session } } = await supabase.auth.getSession();
-        if (!session) return;
+        if (!session) { if (!cancelled) setInsightsLoading(false); return; }
         const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-        if (!apiUrl) return;
+        if (!apiUrl) { if (!cancelled) setInsightsLoading(false); return; }
         const res = await fetch(`${apiUrl}/api/insights?month=${selectedMonth}`, {
           headers: { Authorization: `Bearer ${session.access_token}` },
         });
-        if (!res.ok) return;
+        if (!res.ok) { if (!cancelled) setInsightsLoading(false); return; }
         const data = await res.json();
         if (!cancelled) setInsights(data.insights ?? []);
       } catch (err) {
