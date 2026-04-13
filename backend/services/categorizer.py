@@ -40,12 +40,31 @@ _FOOD_KW = (
     "KETOPMIE", "KETO MIE", "AYAM", "BEBEK", "PADANG", "PECEL",
     "GOFOOD", "GRABFOOD", "SHOPEEFOOD", "TUXEDO", "RESTO", "RESTORAN",
     "SEAFOOD", "SATE ", "RENDANG", "BATAGOR", "SIOMAY", "GADO",
-    "LUIGI", "PANTAI",  # likely food/restaurant names from your data
+    "LUIGI", "PANTAI",
+    # Merchants identified from actual BCA statements (FEB/MAR 2026)
+    "LIBRO",       # Libro restaurant chain (LIBRO TENA, LIBRO FOOD)
+    "SOLARIA",     # Solaria restaurant chain
+    "RUNCHISE",    # Runchise food delivery
+    "LALOLAK",     # Lalolak restaurant
+    "DE SANGER",   # De Sanger cafe
+    "PEPPER",      # Pepper Lunch
+    "YOSHINOYA",   # Yoshinoya
+    "HOKBEN",      # Hoka Hoka Bento
+    "MCDONALD",    # already above but keep alias
+    "KENANGAN",    # Kopi Kenangan
+    "JANJI JIWA",  # Janji Jiwa coffee
+    "FORE ",       # Fore Coffee
 )
 _SHOPPING_KW = (
     "SHOPEE", "TOKOPEDIA", "LAZADA", "BUKALAPAK", "BLIBLI",
     "INDOMARET", "ALFAMART", "IDM INDOM", "MINIMARKET", "SUPERMARKET",
     "HYPERMART", "CARREFOUR", "JNE", "SICEPAT", "ANTERAJA", "TIKI",
+    # Merchants identified from actual BCA statements (FEB/MAR 2026)
+    "MIDI ",        # Midi minimarket chain
+    "FARMERS",      # Farmers Market supermarket
+    "HERO ",        # Hero supermarket
+    "LOTTEMART",    # Lotte Mart
+    "GIANT",        # Giant supermarket
 )
 _TRANSPORT_KW = (
     "FLAZZ", "E-TOLL", "ETOLL", "GOJEK", "GRAB", "OJEK",
@@ -64,6 +83,21 @@ _SUBSCRIPTION_KW = (
 _HEALTH_KW = (
     "APOTEK", "FARMASI", "KLINIK", "RUMAH SAKIT", " RS ", "DOKTER",
     "KIMIA FARMA", "CENTURY", "GUARDIAN", "WATSONS", "DENTAL", "OPTIK",
+    # Merchants identified from actual BCA statements (FEB/MAR 2026)
+    "KENJIDA",     # Kenjida salon/beauty (recurring ~17-28k)
+    "SOCIOLLA",    # Sociolla beauty e-commerce
+    "WATSON",      # Watson (also covers WATSONS above)
+)
+_ENTERTAINMENT_KW = (
+    "BIOSKOP", "XXI", " CGV", "CINEPLEX", "KARAOKE",
+    "STEAM ", "PLAYSTATION", "XBOX", "NINTENDO",
+    # Merchants identified from actual BCA statements (FEB/MAR 2026)
+    "QPON",        # Qpon voucher/game top-up platform
+    "CODA ",       # Coda Payments game top-up
+    "REDFINGER",   # Redfinger cloud gaming
+    "CODASHOP",    # Codashop game top-up
+    "UNIPIN",      # Unipin game top-up
+    "RAZER GOLD",  # Razer Gold game top-up
 )
 
 
@@ -96,6 +130,9 @@ def _rule_category(description: str) -> str | None:
     for kw in _HEALTH_KW:
         if kw in merchant:
             return "Health"
+    for kw in _ENTERTAINMENT_KW:
+        if kw in merchant:
+            return "Entertainment"
 
     return None  # unknown — send to LLM
 
@@ -110,23 +147,28 @@ Category rules (use the MOST SPECIFIC match):
   Keywords: makan, mie, bakso, nasi, ayam, soto, kwetiau, batagor, siomay, warteg, warung,
   restoran, cafe, kopi, pizza, burger, sushi, indomaret (food), alfamart (food), grabfood,
   gofood, shopeefood, kfc, mcdonald, starbucks, chatime, boba, martabak, sate, rendang,
-  gudeg, gado, pecel, lalapan, seafood, ikan, udang, kepiting, bebek, padang.
+  gudeg, gado, pecel, lalapan, seafood, ikan, udang, kepiting, bebek, padang,
+  libro, solaria, runchise, lalolak, de sanger, pepper lunch, yoshinoya, hokben,
+  kopi kenangan, janji jiwa, fore coffee.
 - Transport: ojek, gojek, grab (non-food), taxi, parkir, tol, bensin, bbm, pertamina,
   shell, spbu, busway, kereta, commuter, mrt, lrt, transjakarta, damri, bus, angkot, flazz.
 - Utilities: listrik, pln, air, pdam, gas, pgn, telkom, wifi, internet, indihome,
   firstmedia, phone credit, pulsa, token, tagihan.
 - Shopping: tokopedia, shopee, lazada, bukalapak, blibli, tiktok shop, zalora,
-  alfamart, indomaret, hypermart, carrefour, giant, hero, supermarket, minimarket.
+  alfamart, indomaret, hypermart, carrefour, giant, hero, supermarket, minimarket,
+  midi (minimarket), farmers market, lotte mart.
 - Subscription: netflix, spotify, youtube, disney, apple, google play, icloud,
   microsoft, adobe, canva, zoom, chatgpt, openai.
 - Health: apotek, farmasi, klinik, rumah sakit, rs, dokter, lab, kimia farma,
-  century, guardian, watsons, dental, mata, optic.
+  century, guardian, watsons, dental, mata, optic, kenjida, sociolla.
 - Entertainment: bioskop, cinema, xxi, cgv, cineplex, karaoke, game, steam,
-  playstation, konser, tiket, event.
+  playstation, konser, tiket, event, qpon, coda payments, redfinger, codashop,
+  unipin, razer gold — game top-ups and cloud gaming.
 - Transfer: TRSF, BI-FAST, transfer, kirim uang, RTGS, SKN, top up, flip,
   dana, ovo, gopay, linkaja, jenius — money moving between accounts.
 - Income: salary, gaji, bonus, THR, dividen, bunga, incoming credit from employer.
-- Other: fees, admin, biaya, charges, ATM, withdrawal, or anything not matching above.
+- Other: fees, admin, biaya, charges, ATM, withdrawal, hotel, accommodation,
+  crypto (IDRX, indodax), or anything not matching above.
 
 Important: BCA descriptions often follow "TRANSAKSI DEBIT TGL: DD/MM | MERCHANT NAME".
 The merchant name after "|" is the key signal. Use it to categorize."""
