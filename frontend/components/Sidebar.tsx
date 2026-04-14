@@ -3,7 +3,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  LayoutDashboard, FileText, BarChart2, LogOut, Upload, ChevronRight, Menu, X
+  LayoutDashboard, FileText, BarChart2, GitBranch, LogOut, Upload, ChevronRight, Menu, X
 } from "lucide-react";
 import { createClient } from "@/lib/supabase";
 
@@ -11,6 +11,7 @@ const NAV = [
   { href: "/dashboard",            icon: LayoutDashboard, label: "Dashboard"  },
   { href: "/dashboard/statements", icon: FileText,         label: "Statements" },
   { href: "/dashboard/analytics",  icon: BarChart2,        label: "Analytics"  },
+  { href: "/dashboard/map",        icon: GitBranch,        label: "Flow Map"   },
 ];
 
 function SidebarContent({ onNav }: { onNav?: () => void }) {
