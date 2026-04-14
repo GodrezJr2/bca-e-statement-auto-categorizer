@@ -97,3 +97,80 @@ def test_aggregator_income_node_value_matches_total_spending():
     income_node = next(n for n in resp.nodes if n.id == "Income")
     total_link_value = sum(l.value for l in resp.links)
     assert income_node.value == total_link_value
+
+
+# ---------------------------------------------------------------------------
+# Router tests
+# ---------------------------------------------------------------------------
+
+from unittest.mock import patch, MagicMock
+from fastapi.testclient import TestClient
+
+_MOCK_ROWS = [
+    {"transaction_date": "2026-03-01", "amount": -500000, "categories": {"name": "Food"}},
+    {"transaction_date": "2026-03-02", "amount": -200000, "categories": {"name": "Transport"}},
+]
+
+
+@pytest.fixture
+def flows_client():
+    with patch("routers.flows._get_supabase") as mock_supa:
+        mock_user = MagicMock()
+        mock_user.user.id = "user-abc"
+        mock_supa.return_value.auth.get_user.return_value = mock_user
+
+        chain = MagicMock()
+        chain.eq.return_value = chain
+        chain.gte.return_value = chain
+        chain.lte.return_value = chain
+        chain.execute.return_value = MagicMock(data=_MOCK_ROWS)
+        mock_supa.return_value.table.return_value.select.return_value = chain
+
+        from main import app
+        yield TestClient(app)
+
+
+def test_get_flows_returns_nodes_and_links(flows_client):
+    resp = flows_client.get(
+        "/api/flows?start_date=2026-03-01&end_date=2026-03-31",
+        headers={"Authorization": "Bearer fake-jwt"},
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert "nodes" in body
+    assert "links" in body
+    assert "metadata" in body
+    assert len(body["nodes"]) >= 2
+    assert len(body["links"]) >= 1
+
+
+def test_get_flows_invalid_date_format_returns_400(flows_client):
+    resp = flows_client.get(
+        "/api/flows?start_date=not-a-date&end_date=2026-03-31",
+        headers={"Authorization": "Bearer fake-jwt"},
+    )
+    assert resp.status_code == 400
+
+
+def test_get_flows_reversed_date_range_returns_400(flows_client):
+    resp = flows_client.get(
+        "/api/flows?start_date=2026-04-01&end_date=2026-03-01",
+        headers={"Authorization": "Bearer fake-jwt"},
+    )
+    assert resp.status_code == 400
+
+
+def test_get_flows_negative_min_amount_returns_400(flows_client):
+    resp = flows_client.get(
+        "/api/flows?start_date=2026-03-01&end_date=2026-03-31&min_amount=-1",
+        headers={"Authorization": "Bearer fake-jwt"},
+    )
+    assert resp.status_code == 400
+
+
+def test_get_flows_missing_auth_returns_422():
+    with patch("routers.flows._get_supabase"):
+        from main import app
+        tc = TestClient(app)
+        resp = tc.get("/api/flows?start_date=2026-03-01&end_date=2026-03-31")
+        assert resp.status_code == 422

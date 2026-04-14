@@ -30,3 +30,5 @@ app.add_middleware(
 app.include_router(statements.router, prefix="/api")
 app.include_router(insights.router, prefix="/api")
 app.include_router(budgets.router, prefix="/api")
+from routers import flows
+app.include_router(flows.router, prefix="/api")
