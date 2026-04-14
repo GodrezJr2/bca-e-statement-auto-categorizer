@@ -41,3 +41,25 @@ class BudgetsResponse(BaseModel):
 
 class BudgetUpsertRequest(BaseModel):
     monthly_limit: int = _Field(gt=0, description="Monthly spending limit in IDR, must be > 0")
+
+class FlowNode(BaseModel):
+    id: str
+    value: int
+    type: str   # "source" | "category"
+    color: str
+
+class FlowLink(BaseModel):
+    source: str
+    target: str
+    value: int
+    transactions: int
+
+class FlowMetadata(BaseModel):
+    total_transactions: int
+    total_amount: int
+    period: str
+
+class FlowsResponse(BaseModel):
+    nodes: list[FlowNode]
+    links: list[FlowLink]
+    metadata: FlowMetadata
