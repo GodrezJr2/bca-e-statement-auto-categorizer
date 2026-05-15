@@ -9,38 +9,27 @@ export function LargestTransactions({ transactions }: Props) {
     .sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount))
     .slice(0, 6);
 
-  if (!top.length) return (
-    <p className="text-sm text-center py-6" style={{ color: "var(--text-muted)" }}>No transactions yet</p>
-  );
+  if (!top.length) return <p className="py-6 text-center text-sm text-[var(--text-muted)]">No transactions yet</p>;
 
-  const formatDate = (d: string) => {
-    const dt = new Date(d);
-    return dt.toLocaleDateString("id-ID", { day: "numeric", month: "short" });
-  };
+  const formatDate = (d: string) => new Date(d).toLocaleDateString("id-ID", { day: "numeric", month: "short" });
 
   return (
     <div className="space-y-1">
-      {top.map((t, i) => {
+      {top.map((t) => {
         const isCredit = t.amount > 0;
         const cat = t.categories?.name ?? "Other";
         const initials = cat.slice(0, 2).toUpperCase();
         return (
-          <div key={i} className="flex items-center gap-3 py-2.5 px-1 rounded-xl transition-colors hover:bg-gray-50">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold flex-shrink-0"
-              style={{ background: isCredit ? "#ECFDF5" : "#FEF2F2", color: isCredit ? "var(--income-green)" : "var(--expense-red)" }}>
+          <div key={t.id} className="flex items-center gap-3 rounded-2xl px-2 py-2.5 transition hover:bg-black/[0.035]">
+            <div className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-2xl text-xs font-semibold" style={{ background: isCredit ? "#ecfdf3" : "#fff1f0", color: isCredit ? "var(--income-green)" : "var(--expense-red)" }}>
               {initials}
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium truncate" style={{ color: "var(--text-primary)", fontFamily: "DM Sans, sans-serif" }}>
-                {t.description.length > 35 ? t.description.slice(0, 35) + "\u2026" : t.description}
-              </p>
-              <p className="text-xs" style={{ color: "var(--text-muted)" }}>{cat} &middot; {formatDate(t.transaction_date)}</p>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-xs font-medium text-[var(--text-primary)]">{t.description.length > 35 ? t.description.slice(0, 35) + "…" : t.description}</p>
+              <p className="text-xs text-[var(--text-muted)]">{cat} · {formatDate(t.transaction_date)}</p>
             </div>
-            <p className="text-sm font-semibold flex-shrink-0" style={{
-              color: isCredit ? "var(--income-green)" : "var(--expense-red)",
-              fontFamily: "Sora, sans-serif"
-            }}>
-              {isCredit ? "+" : "-"}Rp {Math.abs(t.amount).toLocaleString("id-ID")}
+            <p className="flex-shrink-0 text-sm font-semibold" style={{ color: isCredit ? "var(--income-green)" : "var(--expense-red)" }}>
+              {isCredit ? "+" : "−"}Rp {Math.abs(t.amount).toLocaleString("id-ID")}
             </p>
           </div>
         );

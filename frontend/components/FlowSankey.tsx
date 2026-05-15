@@ -51,7 +51,7 @@ export function FlowSankey({
     <svg
       width={width}
       height={height}
-      style={{ overflow: "visible", fontFamily: "DM Sans, sans-serif" }}
+      style={{ overflow: "visible", fontFamily: "var(--font-sans)" }}
     >
       {/* Links */}
       {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}

@@ -1,7 +1,6 @@
 "use client";
 import { useState, useMemo } from "react";
-import { Sidebar } from "@/components/Sidebar";
-import { StatsCard } from "@/components/StatsCard";
+import { AppShell, HeroFinanceCard, MetricTile, PageHeader, SurfaceCard } from "@/components/apple-ui";
 import { UploadForm } from "@/components/UploadForm";
 import { SpendingPieChart } from "@/components/SpendingPieChart";
 import { DailyBarChart } from "@/components/DailyBarChart";
@@ -17,8 +16,7 @@ function buildPieData(transactions: Transaction[]) {
     const cat = t.categories?.name ?? "Other";
     map[cat] = (map[cat] ?? 0) + Math.abs(t.amount);
   }
-  return Object.entries(map).map(([name, value]) => ({ name, value: Math.round(value) }))
-    .sort((a, b) => b.value - a.value);
+  return Object.entries(map).map(([name, value]) => ({ name, value: Math.round(value) })).sort((a, b) => b.value - a.value);
 }
 
 function buildBarData(transactions: Transaction[]) {
@@ -27,41 +25,30 @@ function buildBarData(transactions: Transaction[]) {
     if (t.amount >= 0) continue;
     map[t.transaction_date] = (map[t.transaction_date] ?? 0) + Math.abs(t.amount);
   }
-  return Object.entries(map)
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([date, amount]) => ({ date, amount: Math.round(amount) }));
+  return Object.entries(map).sort(([a], [b]) => a.localeCompare(b)).map(([date, amount]) => ({ date, amount: Math.round(amount) }));
 }
 
-function getMonthKey(dateStr: string) {
-  return dateStr.slice(0, 7); // "YYYY-MM"
-}
-
+function getMonthKey(dateStr: string) { return dateStr.slice(0, 7); }
 function formatMonthLabel(key: string) {
   const [y, m] = key.split("-");
-  const d = new Date(Number(y), Number(m) - 1);
-  return d.toLocaleDateString("id-ID", { month: "short", year: "numeric" });
+  return new Date(Number(y), Number(m) - 1).toLocaleDateString("id-ID", { month: "short", year: "numeric" });
+}
+function formatShortCurrency(n: number) {
+  if (n >= 1_000_000) return `Rp ${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `Rp ${(n / 1_000).toFixed(0)}K`;
+  return `Rp ${Math.round(n).toLocaleString("id-ID")}`;
 }
 
 export default function DashboardClient({ initialTransactions }: { initialTransactions: Transaction[] }) {
   const [transactions, setTransactions] = useState(initialTransactions);
   const [selectedMonth, setSelectedMonth] = useState<string>("all");
 
-  // Get all unique months
-  const months = useMemo(() => {
-    const set = new Set(transactions.map(t => getMonthKey(t.transaction_date)));
-    return Array.from(set).sort().reverse();
-  }, [transactions]);
-
-  const filtered = useMemo(() =>
-    selectedMonth === "all" ? transactions : transactions.filter(t => getMonthKey(t.transaction_date) === selectedMonth),
-    [transactions, selectedMonth]
-  );
-
-  const pieData  = useMemo(() => buildPieData(filtered), [filtered]);
-  const barData  = useMemo(() => buildBarData(filtered), [filtered]);
+  const months = useMemo(() => Array.from(new Set(transactions.map(t => getMonthKey(t.transaction_date)))).sort().reverse(), [transactions]);
+  const filtered = useMemo(() => selectedMonth === "all" ? transactions : transactions.filter(t => getMonthKey(t.transaction_date) === selectedMonth), [transactions, selectedMonth]);
+  const pieData = useMemo(() => buildPieData(filtered), [filtered]);
+  const barData = useMemo(() => buildBarData(filtered), [filtered]);
   const totalExpense = useMemo(() => filtered.filter(t => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0), [filtered]);
-  const totalIncome  = useMemo(() => filtered.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0), [filtered]);
-
+  const totalIncome = useMemo(() => filtered.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0), [filtered]);
   const spendByCategory = useMemo(() => {
     const map: Record<string, number> = {};
     for (const t of filtered) {
@@ -74,146 +61,81 @@ export default function DashboardClient({ initialTransactions }: { initialTransa
 
   async function refresh() {
     const supabase = createClient();
-    const { data, error } = await supabase
-      .from("transactions")
-      .select("id, transaction_date, description, amount, categories(name)")
-      .order("transaction_date", { ascending: false });
+    const { data, error } = await supabase.from("transactions").select("id, transaction_date, description, amount, categories(name)").order("transaction_date", { ascending: false });
     if (error) { console.error("Refresh failed:", error.message); return; }
     setTransactions((data as unknown as Transaction[]) ?? []);
   }
 
+  const periodLabel = selectedMonth === "all" ? "All time" : formatMonthLabel(selectedMonth);
+
   return (
-    <div className="flex min-h-screen" style={{ background: "var(--bg-main)", fontFamily: "DM Sans, sans-serif" }}>
-      <Sidebar />
+    <AppShell>
+      <PageHeader title="Dashboard" eyebrow={`${transactions.length} total transactions`} />
 
-      {/* Main content */}
-      <main className="flex-1 md:ml-56 pt-16 md:pt-0 p-4 md:p-6 min-h-screen animate-fadeIn">
-
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
-          <div>
-            <h1 className="text-xl font-bold" style={{ fontFamily: "Sora, sans-serif", color: "var(--text-primary)" }}>
-              Dashboard
-            </h1>
-            <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
-              {transactions.length} total transactions
-            </p>
+      <div className="grid gap-4 lg:grid-cols-[1.25fr_0.75fr]">
+        <div className="space-y-4">
+          <HeroFinanceCard
+            title={periodLabel}
+            subtitle="Spending overview"
+            primaryValue={formatShortCurrency(totalExpense)}
+            secondaryValue={`${formatShortCurrency(totalIncome)} income · ${filtered.length} transactions`}
+            footer="BCA e-Statement financial hub"
+          />
+          <div className="grid gap-3 sm:grid-cols-3">
+            <MetricTile label="Total Expense" value={formatShortCurrency(totalExpense)} detail={periodLabel} tone="expense" />
+            <MetricTile label="Total Income" value={formatShortCurrency(totalIncome)} detail={periodLabel} tone="income" />
+            <MetricTile label="Transactions" value={String(filtered.length)} detail={`${filtered.filter(t => t.amount < 0).length} debit · ${filtered.filter(t => t.amount > 0).length} credit`} tone="blue" />
           </div>
+        </div>
+        <UploadForm onSuccess={refresh} />
+      </div>
 
-          {/* Month filter pills */}
-          {months.length > 0 && (
-            <div className="flex items-center gap-2 flex-wrap justify-end">
-              <button onClick={() => setSelectedMonth("all")}
-                className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
-                style={{
-                  background: selectedMonth === "all" ? "var(--accent-gradient)" : "var(--bg-card)",
-                  color: selectedMonth === "all" ? "#fff" : "var(--text-secondary)",
-                  border: "1px solid var(--border)",
-                }}>
-                All Time
-              </button>
-              {months.map(m => (
-                <button key={m} onClick={() => setSelectedMonth(m)}
-                  className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
-                  style={{
-                    background: selectedMonth === m ? "var(--accent-gradient)" : "var(--bg-card)",
-                    color: selectedMonth === m ? "#fff" : "var(--text-secondary)",
-                    border: "1px solid var(--border)",
-                  }}>
-                  {formatMonthLabel(m)}
+      {months.length > 0 && (
+        <div className="mt-5 flex gap-2 overflow-x-auto pb-1">
+          <button onClick={() => setSelectedMonth("all")} className="rounded-full px-4 py-2 text-sm font-semibold transition" style={{ background: selectedMonth === "all" ? "var(--text-primary)" : "rgba(255,255,255,.72)", color: selectedMonth === "all" ? "#fff" : "var(--text-secondary)" }}>All Time</button>
+          {months.map(m => (
+            <button key={m} onClick={() => setSelectedMonth(m)} className="rounded-full px-4 py-2 text-sm font-semibold transition" style={{ background: selectedMonth === m ? "var(--text-primary)" : "rgba(255,255,255,.72)", color: selectedMonth === m ? "#fff" : "var(--text-secondary)" }}>{formatMonthLabel(m)}</button>
+          ))}
+        </div>
+      )}
+
+      <div className="mt-5 grid gap-4 lg:grid-cols-3">
+        <SurfaceCard className="lg:col-span-2">
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="text-base font-semibold tracking-[-0.03em]">Daily Spending</h3>
+            <p className="text-xs text-[var(--text-muted)]">{periodLabel}</p>
+          </div>
+          <DailyBarChart data={barData} />
+        </SurfaceCard>
+        <SurfaceCard>
+          <h3 className="text-base font-semibold tracking-[-0.03em]">Spending by Category</h3>
+          <SpendingPieChart data={pieData} />
+        </SurfaceCard>
+      </div>
+
+      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+        <SurfaceCard>
+          <h3 className="mb-3 text-base font-semibold tracking-[-0.03em]">Largest Transactions</h3>
+          <LargestTransactions transactions={filtered} />
+        </SurfaceCard>
+        <SurfaceCard>
+          <h3 className="mb-3 text-base font-semibold tracking-[-0.03em]">Uploaded Statements</h3>
+          <div className="space-y-2">
+            {months.length === 0 && <p className="text-sm text-[var(--text-muted)]">No statements uploaded yet.</p>}
+            {months.map(m => {
+              const count = transactions.filter(t => getMonthKey(t.transaction_date) === m).length;
+              return (
+                <button key={m} onClick={() => setSelectedMonth(m)} className="flex w-full items-center justify-between rounded-2xl bg-white/60 px-4 py-3 text-left transition hover:bg-white">
+                  <span className="text-sm font-semibold">{formatMonthLabel(m)}</span>
+                  <span className="text-xs text-[var(--text-muted)]">{count} txn</span>
                 </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Stats row */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
-          <StatsCard label="Total Expense" value={totalExpense} type="expense"
-            subtitle={selectedMonth === "all" ? "All time" : formatMonthLabel(selectedMonth)} />
-          <StatsCard label="Total Income" value={totalIncome} type="income"
-            subtitle={selectedMonth === "all" ? "All time" : formatMonthLabel(selectedMonth)} />
-          <StatsCard label="Transactions" value={filtered.length} type="count"
-            subtitle={`${filtered.filter(t => t.amount < 0).length} debit · ${filtered.filter(t => t.amount > 0).length} credit`} />
-        </div>
-
-        {/* Main grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-
-          {/* Upload — left column */}
-          <div className="col-span-1 space-y-4">
-            <UploadForm onSuccess={refresh} />
-
-            {/* Statement history */}
-            {months.length > 0 && (
-              <div className="rounded-2xl p-5" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
-                <h3 className="text-sm font-semibold mb-3" style={{ color: "var(--text-primary)", fontFamily: "Sora, sans-serif" }}>
-                  Uploaded Statements
-                </h3>
-                <div className="space-y-2">
-                  {months.map(m => {
-                    const count = transactions.filter(t => getMonthKey(t.transaction_date) === m).length;
-                    return (
-                      <button key={m} onClick={() => setSelectedMonth(m)}
-                        className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-left transition-all"
-                        style={{
-                          background: selectedMonth === m ? "#F5F3FF" : "#F8FAFC",
-                          border: `1px solid ${selectedMonth === m ? "var(--accent-violet)" : "var(--border)"}`,
-                        }}>
-                        <span className="text-xs font-semibold" style={{ color: selectedMonth === m ? "var(--accent-violet)" : "var(--text-primary)" }}>
-                          {formatMonthLabel(m)}
-                        </span>
-                        <span className="text-xs" style={{ color: "var(--text-muted)" }}>{count} txn</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
+              );
+            })}
           </div>
+        </SurfaceCard>
+      </div>
 
-          {/* Charts — right 2 columns */}
-          <div className="col-span-1 lg:col-span-2 space-y-4">
-
-            {/* Bar chart */}
-            <div className="rounded-2xl p-5" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-semibold" style={{ fontFamily: "Sora, sans-serif", color: "var(--text-primary)" }}>
-                  Daily Spending
-                </h3>
-                <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-                  {selectedMonth === "all" ? "All time" : formatMonthLabel(selectedMonth)}
-                </p>
-              </div>
-              <DailyBarChart data={barData} />
-            </div>
-
-            {/* Pie + Largest Transactions row */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="rounded-2xl p-5" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
-                <h3 className="text-sm font-semibold mb-1" style={{ fontFamily: "Sora, sans-serif", color: "var(--text-primary)" }}>
-                  Spending by Category
-                </h3>
-                <SpendingPieChart data={pieData} />
-              </div>
-
-              <div className="rounded-2xl p-5" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
-                <h3 className="text-sm font-semibold mb-3" style={{ fontFamily: "Sora, sans-serif", color: "var(--text-primary)" }}>
-                  Largest Transactions
-                </h3>
-                <LargestTransactions transactions={filtered} />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Budget Tracker — only when a specific month is selected */}
-        {selectedMonth !== "all" && (
-          <div className="mt-4">
-            <BudgetTracker spendByCategory={spendByCategory} />
-          </div>
-        )}
-      </main>
-    </div>
+      {selectedMonth !== "all" && <div className="mt-4"><BudgetTracker spendByCategory={spendByCategory} /></div>}
+    </AppShell>
   );
 }
