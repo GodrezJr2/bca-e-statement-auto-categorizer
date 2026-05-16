@@ -9,31 +9,32 @@ export function LargestTransactions({ transactions }: Props) {
     .sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount))
     .slice(0, 6);
 
-  if (!top.length) return <p className="py-6 text-center text-sm text-[var(--text-muted)]">No transactions yet</p>;
-
-  const formatDate = (d: string) => new Date(d).toLocaleDateString("id-ID", { day: "numeric", month: "short" });
+  if (!top.length) return <p className="py-6 text-center font-mono text-xs text-[var(--term-muted)]">No transactions yet</p>;
 
   return (
-    <div className="space-y-1">
-      {top.map((t) => {
-        const isCredit = t.amount > 0;
-        const cat = t.categories?.name ?? "Other";
-        const initials = cat.slice(0, 2).toUpperCase();
-        return (
-          <div key={t.id} className="flex items-center gap-3 rounded-2xl px-2 py-2.5 transition hover:bg-black/[0.035]">
-            <div className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-2xl text-xs font-semibold" style={{ background: isCredit ? "#ecfdf3" : "#fff1f0", color: isCredit ? "var(--income-green)" : "var(--expense-red)" }}>
-              {initials}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-xs font-medium text-[var(--text-primary)]">{t.description.length > 35 ? t.description.slice(0, 35) + "…" : t.description}</p>
-              <p className="text-xs text-[var(--text-muted)]">{cat} · {formatDate(t.transaction_date)}</p>
-            </div>
-            <p className="flex-shrink-0 text-sm font-semibold" style={{ color: isCredit ? "var(--income-green)" : "var(--expense-red)" }}>
-              {isCredit ? "+" : "−"}Rp {Math.abs(t.amount).toLocaleString("id-ID")}
-            </p>
-          </div>
-        );
-      })}
-    </div>
+    <table className="w-full border-collapse font-mono text-[11px] font-variant-numeric tabular-nums">
+      <thead>
+        <tr className="text-[9px] uppercase tracking-[0.14em] text-[var(--term-muted)]">
+          <th className="py-1 text-left font-normal">DESC</th>
+          <th className="py-1 text-left font-normal">CAT</th>
+          <th className="py-1 text-right font-normal">AMT</th>
+        </tr>
+      </thead>
+      <tbody>
+        {top.map((t) => {
+          const isCredit = t.amount > 0;
+          const cat = t.categories?.name ?? "Other";
+          return (
+            <tr key={t.id} className="border-t border-[var(--term-border)] hover:bg-[var(--term-panel-2)]">
+              <td className="max-w-[320px] truncate py-2 pr-3 text-[var(--term-fg)]">{t.description}</td>
+              <td className="py-2 pr-3 uppercase text-[var(--term-secondary)]">{cat}</td>
+              <td className="py-2 text-right font-semibold" style={{ color: isCredit ? "var(--term-pos)" : "var(--term-neg)" }}>
+                {isCredit ? "+" : "−"}Rp {Math.abs(t.amount).toLocaleString("id-ID")}
+              </td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
   );
 }

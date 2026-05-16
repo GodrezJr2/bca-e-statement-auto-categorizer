@@ -15,19 +15,21 @@ export function FlowFilters({ filters, onApply }: { filters: FlowParams; onApply
     onApply(reset);
   }
   return (
-    <SurfaceCard compact className="flex flex-wrap items-end gap-3">
-      {[{ label: "From", key: "startDate" as const, type: "date" }, { label: "To", key: "endDate" as const, type: "date" }].map(({ label, key, type }) => (
-        <div key={key} className="flex flex-col gap-1">
-          <label className="text-xs font-medium text-[var(--text-muted)]">{label}</label>
-          <input type={type} value={local[key]} onChange={(e) => setLocal(prev => ({ ...prev, [key]: e.target.value }))} className="rounded-2xl border border-[var(--border)] bg-white/70 px-3 py-2 text-xs outline-none focus:border-[var(--apple-blue)] focus:ring-4 focus:ring-blue-500/10" />
+    <SurfaceCard compact title="filter.params" sub="cashflow query">
+      <div className="flex flex-wrap items-end gap-3">
+        {[{ label: "FROM", key: "startDate" as const, type: "date" }, { label: "TO", key: "endDate" as const, type: "date" }].map(({ label, key, type }) => (
+          <div key={key} className="flex flex-col gap-1">
+            <label className="term-label">{label}</label>
+            <input type={type} value={local[key]} onChange={(e) => setLocal(prev => ({ ...prev, [key]: e.target.value }))} className="border border-[var(--term-border)] bg-[var(--term-bg)] px-3 py-2 font-mono text-xs text-[var(--term-fg)] outline-none focus:border-[var(--term-accent)]" />
+          </div>
+        ))}
+        <div className="flex flex-col gap-1">
+          <label className="term-label">MIN Rp</label>
+          <input type="number" min={0} value={local.minAmount} onChange={(e) => setLocal(prev => ({ ...prev, minAmount: Number(e.target.value) || 0 }))} placeholder="0" className="w-36 border border-[var(--term-border)] bg-[var(--term-bg)] px-3 py-2 font-mono text-xs text-[var(--term-fg)] outline-none focus:border-[var(--term-accent)]" />
         </div>
-      ))}
-      <div className="flex flex-col gap-1">
-        <label className="text-xs font-medium text-[var(--text-muted)]">Min Amount (Rp)</label>
-        <input type="number" min={0} value={local.minAmount} onChange={(e) => setLocal(prev => ({ ...prev, minAmount: Number(e.target.value) || 0 }))} placeholder="0" className="w-36 rounded-2xl border border-[var(--border)] bg-white/70 px-3 py-2 text-xs outline-none focus:border-[var(--apple-blue)] focus:ring-4 focus:ring-blue-500/10" />
+        <button onClick={handleApply} className="bg-[var(--term-accent)] px-5 py-2 font-mono text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--term-bg)]">RUN</button>
+        <button onClick={handleReset} className="border border-[var(--term-border)] bg-[var(--term-panel-2)] px-4 py-2 font-mono text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--term-secondary)]">RESET</button>
       </div>
-      <button onClick={handleApply} className="rounded-full bg-[var(--apple-blue)] px-5 py-2 text-xs font-semibold text-white transition hover:bg-[var(--apple-blue-strong)]">Apply</button>
-      <button onClick={handleReset} className="rounded-full bg-white/70 px-4 py-2 text-xs font-semibold text-[var(--text-secondary)] transition hover:bg-white">Reset</button>
     </SurfaceCard>
   );
 }

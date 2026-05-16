@@ -7,8 +7,8 @@ interface Budget { category: string; monthly_limit: number; }
 const VALID_CATS = ["Food", "Transport", "Utilities", "Shopping", "Subscription", "Health", "Entertainment", "Other"];
 
 function formatCurrency(n: number) {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(0)}K`;
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}jt`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(0)}rb`;
   return String(Math.round(n));
 }
 
@@ -91,24 +91,24 @@ export function BudgetTracker({ spendByCategory }: { spendByCategory: Record<str
   const availableCats = VALID_CATS.filter(c => !budgets.find(b => b.category === c));
 
   return (
-    <div className="surface-card p-5">
-      <div className="mb-4 flex items-center justify-between">
+    <div className="term-panel p-4">
+      <div className="mb-4 flex items-center justify-between border-b border-[var(--term-border)] pb-3">
         <div className="flex items-center gap-2">
-          <div className="grid h-8 w-8 place-items-center rounded-2xl bg-[var(--text-primary)] text-white"><Target size={14} /></div>
+          <div className="grid h-8 w-8 place-items-center border border-[var(--term-border)] text-[var(--term-accent)]"><Target size={14} /></div>
           <div>
-            <h3 className="text-base font-semibold tracking-[-0.03em]">Monthly Budgets</h3>
-            <p className="text-xs text-[var(--text-muted)]">Quiet limits for selected month</p>
+            <h3 className="font-mono text-sm font-semibold uppercase tracking-[0.08em] text-[var(--term-fg)]">budgets.monthly</h3>
+            <p className="font-mono text-[10px] text-[var(--term-muted)]">limits for selected volume</p>
           </div>
         </div>
         {!addingNew && availableCats.length > 0 && (
-          <button onClick={() => { setAddingNew(true); setNewCat(availableCats[0]); }} className="flex items-center gap-1 rounded-full bg-white/70 px-3 py-2 text-xs font-semibold text-[var(--text-secondary)] transition hover:bg-white">
+          <button onClick={() => { setAddingNew(true); setNewCat(availableCats[0]); }} className="flex items-center gap-1 border border-[var(--term-border)] bg-[var(--term-panel-2)] px-3 py-2 font-mono text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--term-accent)] transition hover:border-[var(--term-accent)]">
             <Plus size={12} /> Set Budget
           </button>
         )}
       </div>
 
-      {loading && <div className="space-y-3">{[1, 2, 3].map(i => <div key={i} className="h-12 rounded-2xl shimmer" />)}</div>}
-      {!loading && budgets.length === 0 && !addingNew && <p className="text-sm text-[var(--text-muted)]">No budgets set. Use Set Budget to add monthly spending limit.</p>}
+      {loading && <div className="space-y-3">{[1, 2, 3].map(i => <div key={i} className="h-12 shimmer" />)}</div>}
+      {!loading && budgets.length === 0 && !addingNew && <p className="font-mono text-xs text-[var(--term-muted)]">No budgets set. Use Set Budget to add monthly spending limit.</p>}
 
       {!loading && (
         <div className="space-y-3">
@@ -116,29 +116,29 @@ export function BudgetTracker({ spendByCategory }: { spendByCategory: Record<str
             const spent = spendByCategory[budget.category] ?? 0;
             const pct = Math.min(100, (spent / budget.monthly_limit) * 100);
             const over = spent > budget.monthly_limit;
-            const color = over ? "var(--expense-red)" : "var(--apple-blue)";
+            const color = over ? "var(--term-neg)" : "var(--term-accent)";
             const isEditing = editingCat === budget.category;
             return (
-              <div key={budget.category} className="rounded-2xl bg-white/62 p-3">
+              <div key={budget.category} className="border border-[var(--term-border)] bg-[var(--term-panel-2)] p-3">
                 {isEditing ? (
                   <div className="flex items-center gap-2">
-                    <span className="w-24 shrink-0 text-xs font-semibold">{budget.category}</span>
-                    <span className="text-xs text-[var(--text-muted)]">Rp</span>
-                    <input type="number" min={1} value={editValue} onChange={e => setEditValue(e.target.value)} onKeyDown={e => { if (e.key === "Enter") commitEdit(budget.category); if (e.key === "Escape") setEditingCat(null); }} autoFocus className="min-w-0 flex-1 rounded-xl border border-[var(--border)] bg-white px-2 py-1 text-xs outline-none" />
-                    <button onClick={() => commitEdit(budget.category)} disabled={saving} className="rounded-full bg-green-50 p-1"><Check size={13} className="text-[var(--income-green)]" /></button>
-                    <button onClick={() => setEditingCat(null)} className="rounded-full bg-red-50 p-1"><X size={13} className="text-[var(--expense-red)]" /></button>
+                    <span className="w-24 shrink-0 font-mono text-xs uppercase text-[var(--term-fg)]">{budget.category}</span>
+                    <span className="font-mono text-xs text-[var(--term-muted)]">Rp</span>
+                    <input type="number" min={1} value={editValue} onChange={e => setEditValue(e.target.value)} onKeyDown={e => { if (e.key === "Enter") commitEdit(budget.category); if (e.key === "Escape") setEditingCat(null); }} autoFocus className="min-w-0 flex-1 border border-[var(--term-border)] bg-[var(--term-bg)] px-2 py-1 font-mono text-xs text-[var(--term-fg)] outline-none" />
+                    <button onClick={() => commitEdit(budget.category)} disabled={saving} className="border border-[var(--term-pos)] p-1 text-[var(--term-pos)]"><Check size={13} /></button>
+                    <button onClick={() => setEditingCat(null)} className="border border-[var(--term-neg)] p-1 text-[var(--term-neg)]"><X size={13} /></button>
                   </div>
                 ) : (
                   <>
                     <div className="mb-2 flex items-center justify-between gap-3">
                       <div>
-                        <p className="text-sm font-semibold">{budget.category}</p>
-                        <p className="text-xs text-[var(--text-muted)]">Rp {formatCurrency(spent)} / Rp {formatCurrency(budget.monthly_limit)}</p>
+                        <p className="font-mono text-xs font-semibold uppercase text-[var(--term-fg)]">{budget.category}</p>
+                        <p className="font-mono text-[10px] text-[var(--term-muted)]">Rp {formatCurrency(spent)} / Rp {formatCurrency(budget.monthly_limit)}</p>
                       </div>
-                      <button onClick={() => startEdit(budget.category, budget.monthly_limit)} className="rounded-full bg-white p-2 text-[var(--text-muted)] transition hover:text-[var(--text-primary)]"><Pencil size={12} /></button>
+                      <button onClick={() => startEdit(budget.category, budget.monthly_limit)} className="border border-[var(--term-border)] p-2 text-[var(--term-muted)] transition hover:text-[var(--term-accent)]"><Pencil size={12} /></button>
                     </div>
-                    <div className="h-2 overflow-hidden rounded-full bg-black/[0.06]"><div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: color }} /></div>
-                    {over && <p className="mt-1 text-xs font-medium text-[var(--expense-red)]">Over budget</p>}
+                    <div className="h-2 overflow-hidden bg-[var(--term-grid)]"><div className="h-full transition-all duration-500" style={{ width: `${pct}%`, background: color }} /></div>
+                    {over && <p className="mt-1 font-mono text-[10px] font-medium uppercase text-[var(--term-neg)]">Over budget</p>}
                   </>
                 )}
               </div>
@@ -146,14 +146,14 @@ export function BudgetTracker({ spendByCategory }: { spendByCategory: Record<str
           })}
 
           {addingNew && (
-            <div className="flex items-center gap-2 rounded-2xl border border-dashed border-[var(--border)] bg-white/50 p-3">
-              <select value={newCat} onChange={e => setNewCat(e.target.value)} className="w-28 rounded-xl border border-[var(--border)] bg-white px-2 py-1 text-xs outline-none">
+            <div className="flex items-center gap-2 border border-dashed border-[var(--term-border)] bg-[var(--term-bg)] p-3">
+              <select value={newCat} onChange={e => setNewCat(e.target.value)} className="w-28 border border-[var(--term-border)] bg-[var(--term-panel)] px-2 py-1 font-mono text-xs text-[var(--term-fg)] outline-none">
                 {availableCats.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
-              <span className="text-xs text-[var(--text-muted)]">Rp</span>
-              <input type="number" min={1} value={newLimit} placeholder="500000" onChange={e => setNewLimit(e.target.value)} onKeyDown={e => { if (e.key === "Enter") commitNew(); if (e.key === "Escape") setAddingNew(false); }} autoFocus className="min-w-0 flex-1 rounded-xl border border-[var(--border)] bg-white px-2 py-1 text-xs outline-none" />
-              <button onClick={commitNew} disabled={saving || !newLimit} className="rounded-full bg-green-50 p-1"><Check size={13} className="text-[var(--income-green)]" /></button>
-              <button onClick={() => setAddingNew(false)} className="rounded-full bg-red-50 p-1"><X size={13} className="text-[var(--expense-red)]" /></button>
+              <span className="font-mono text-xs text-[var(--term-muted)]">Rp</span>
+              <input type="number" min={1} value={newLimit} placeholder="500000" onChange={e => setNewLimit(e.target.value)} onKeyDown={e => { if (e.key === "Enter") commitNew(); if (e.key === "Escape") setAddingNew(false); }} autoFocus className="min-w-0 flex-1 border border-[var(--term-border)] bg-[var(--term-panel)] px-2 py-1 font-mono text-xs text-[var(--term-fg)] outline-none" />
+              <button onClick={commitNew} disabled={saving || !newLimit} className="border border-[var(--term-pos)] p-1 text-[var(--term-pos)]"><Check size={13} /></button>
+              <button onClick={() => setAddingNew(false)} className="border border-[var(--term-neg)] p-1 text-[var(--term-neg)]"><X size={13} /></button>
             </div>
           )}
         </div>

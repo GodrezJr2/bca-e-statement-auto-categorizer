@@ -1,15 +1,15 @@
 "use client";
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
-const COLORS = ["#007aff", "#34c759", "#ff9500", "#ff3b30", "#5ac8fa", "#af52de", "#5856d6", "#8e8e93", "#ffcc00", "#30d158"];
+const COLORS = ["#C6F751", "#62F0CB", "#FF6E7A", "#F7B955", "#8C95A1", "#D946A6", "#3B6FD9", "#D9603B", "#94A3B8", "#16A34A"];
 interface ChartEntry { name: string; value: number; }
 
 const CustomLegend = ({ payload }: { payload?: Array<{ value: string; color: string }> }) => (
   <div className="mt-2 flex flex-wrap justify-center gap-x-3 gap-y-1.5">
     {(payload ?? []).map((p) => (
       <div key={p.value} className="flex items-center gap-1.5">
-        <div className="h-2 w-2 rounded-full" style={{ background: p.color }} />
-        <span className="text-xs text-[var(--text-secondary)]">{p.value}</span>
+        <div className="h-2 w-2" style={{ background: p.color }} />
+        <span className="font-mono text-[10px] uppercase text-[var(--term-secondary)]">{p.value}</span>
       </div>
     ))}
   </div>
@@ -18,7 +18,7 @@ const CustomLegend = ({ payload }: { payload?: Array<{ value: string; color: str
 export function SpendingPieChart({ data }: { data: ChartEntry[] }) {
   if (!data.length) return (
     <div className="flex h-48 items-center justify-center">
-      <p className="text-sm text-[var(--text-muted)]">No expense data</p>
+      <p className="font-mono text-xs text-[var(--term-muted)]">No expense data</p>
     </div>
   );
 
@@ -27,14 +27,14 @@ export function SpendingPieChart({ data }: { data: ChartEntry[] }) {
   return (
     <ResponsiveContainer width="100%" height={240}>
       <PieChart>
-        <Pie data={data} dataKey="value" nameKey="name" cx="50%" cy="45%" innerRadius={58} outerRadius={86} paddingAngle={3} strokeWidth={0}>
+        <Pie data={data} dataKey="value" nameKey="name" cx="50%" cy="45%" innerRadius={58} outerRadius={86} paddingAngle={2} stroke="var(--term-bg)" strokeWidth={2}>
           {data.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
         </Pie>
-        <text x="50%" y="43%" textAnchor="middle" dominantBaseline="middle" style={{ fontSize: "10px", letterSpacing: ".16em", fill: "var(--text-muted)", fontWeight: 700 }}>TOTAL</text>
-        <text x="50%" y="51%" textAnchor="middle" dominantBaseline="middle" style={{ fontSize: "14px", fontWeight: 650, fill: "var(--text-primary)" }}>
-          {(total / 1000000).toFixed(1)}M
+        <text x="50%" y="43%" textAnchor="middle" dominantBaseline="middle" style={{ fontSize: "10px", letterSpacing: ".16em", fill: "var(--term-muted)", fontWeight: 700, fontFamily: "var(--font-mono)" }}>TOTAL</text>
+        <text x="50%" y="51%" textAnchor="middle" dominantBaseline="middle" style={{ fontSize: "14px", fontWeight: 650, fill: "var(--term-fg)", fontFamily: "var(--font-mono)" }}>
+          {(total / 1000000).toFixed(1)}jt
         </text>
-        <Tooltip formatter={(v) => [`Rp ${Number(v).toLocaleString("id-ID")}`, ""]} contentStyle={{ borderRadius: 16, border: "1px solid var(--border)", boxShadow: "var(--shadow-soft)", fontSize: 12 }} />
+        <Tooltip formatter={(v) => [`Rp ${Number(v).toLocaleString("id-ID")}`, ""]} contentStyle={{ borderRadius: 0, border: "1px solid var(--term-border)", background: "var(--term-panel)", color: "var(--term-fg)", fontFamily: "var(--font-mono)", fontSize: 12 }} />
         <Legend content={<CustomLegend />} />
       </PieChart>
     </ResponsiveContainer>

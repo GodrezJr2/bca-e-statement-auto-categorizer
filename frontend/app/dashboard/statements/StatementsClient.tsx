@@ -1,17 +1,18 @@
 "use client";
 import { useState, useMemo } from "react";
-import { Download, FileText, Search, TrendingDown, TrendingUp } from "lucide-react";
+import { Download, Search } from "lucide-react";
 import { AppShell, MetricTile, PageHeader, SurfaceCard } from "@/components/apple-ui";
 import type { Transaction } from "@/lib/types";
 import { createClient } from "@/lib/supabase";
 
 function getMonthKey(d: string) { return d.slice(0, 7); }
-function formatMonthLabel(key: string) { const [y, m] = key.split("-"); return new Date(Number(y), Number(m) - 1).toLocaleDateString("id-ID", { month: "long", year: "numeric" }); }
-function formatCurrency(n: number) { return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(Math.abs(n)); }
-function shortCurrency(n: number) { if (n >= 1_000_000) return `Rp ${(n / 1_000_000).toFixed(1)}M`; if (n >= 1_000) return `Rp ${(n / 1_000).toFixed(0)}K`; return `Rp ${Math.round(n).toLocaleString("id-ID")}`; }
+function formatMonthLabel(key: string) { const [y, m] = key.split("-"); return new Date(Number(y), Number(m) - 1).toLocaleDateString("id-ID", { month: "short", year: "2-digit" }); }
+function formatCurrency(n: number) { return `Rp ${Math.abs(Math.round(n)).toLocaleString("id-ID")}`; }
+function shortCurrency(n: number) { if (n >= 1_000_000) return `Rp ${(n / 1_000_000).toFixed(1)}jt`; if (n >= 1_000) return `Rp ${(n / 1_000).toFixed(0)}rb`; return `Rp ${Math.round(n).toLocaleString("id-ID")}`; }
+function plainCurrency(n: number) { const abs = Math.abs(n); if (abs >= 1_000_000) return `${(abs / 1_000_000).toFixed(1)}jt`; if (abs >= 1_000) return `${(abs / 1_000).toFixed(0)}rb`; return String(Math.round(abs)); }
 
 const CAT_BADGE: Record<string, { bg: string; text: string }> = {
-  Food: { bg: "#fff7ed", text: "#c2410c" }, Transport: { bg: "#ecfeff", text: "#0e7490" }, Utilities: { bg: "#fffbeb", text: "#b45309" }, Shopping: { bg: "#f5f3ff", text: "#6d28d9" }, Subscription: { bg: "#eef2ff", text: "#4338ca" }, Health: { bg: "#fef2f2", text: "#b91c1c" }, Entertainment: { bg: "#fdf2f8", text: "#be185d" }, Transfer: { bg: "#eff6ff", text: "#1d4ed8" }, Income: { bg: "#ecfdf3", text: "#15803d" }, Other: { bg: "#f5f5f7", text: "#6e6e73" },
+  Food: { bg: "#241815", text: "#D9603B" }, Transport: { bg: "#101a25", text: "#62F0CB" }, Utilities: { bg: "#221c12", text: "#F7B955" }, Shopping: { bg: "#1c1828", text: "#C6F751" }, Subscription: { bg: "#121d1c", text: "#62F0CB" }, Health: { bg: "#241316", text: "#FF6E7A" }, Entertainment: { bg: "#211522", text: "#D946A6" }, Transfer: { bg: "#171b22", text: "#8C95A1" }, Income: { bg: "#12211d", text: "#62F0CB" }, Other: { bg: "#15181D", text: "#8C95A1" },
 };
 const CATEGORIES = ["Food", "Transport", "Utilities", "Shopping", "Subscription", "Health", "Entertainment", "Transfer", "Income", "Other"];
 
@@ -69,43 +70,73 @@ export default function StatementsClient({ initialTransactions }: { initialTrans
 
   return (
     <AppShell>
-      <PageHeader title="Statements" eyebrow={isGlobalMode ? "Search across all months" : "Browse imported transactions"} action={activeMonth && !isGlobalMode && <button onClick={handleExport} disabled={isExporting} className="inline-flex items-center gap-2 rounded-full bg-white/75 px-4 py-2 text-sm font-semibold text-[var(--text-primary)] shadow-sm transition hover:bg-white disabled:opacity-50"><Download size={15} />{isExporting ? "Exporting…" : "Export CSV"}</button>} />
-      {exportError && <p className="mb-4 rounded-2xl bg-red-50 px-4 py-3 text-sm text-[var(--expense-red)]">{exportError}</p>}
+      <PageHeader title="Statements" eyebrow={isGlobalMode ? "grep all volumes" : "browse imported rows"} action={activeMonth && !isGlobalMode && <button onClick={handleExport} disabled={isExporting} className="inline-flex items-center gap-2 border border-[var(--term-border)] bg-[var(--term-panel-2)] px-3 py-2 font-mono text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--term-accent)] transition hover:border-[var(--term-accent)] disabled:opacity-50"><Download size={14} />{isExporting ? "Exporting…" : "Export CSV"}</button>} />
+      {exportError && <p className="mb-3 border border-[var(--term-neg)] bg-[var(--term-panel-2)] px-4 py-3 font-mono text-xs text-[var(--term-neg)]">{exportError}</p>}
 
-      <div className="sticky top-4 z-20 mb-5 rounded-[28px] border border-white/70 bg-white/80 p-4 shadow-sm backdrop-blur-xl">
-        <div className="relative">
-          <Search size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
-          <input aria-label="Search all months" value={globalSearch} onChange={e => setGlobalSearch(e.target.value)} placeholder="Search all months…" className="w-full rounded-full border border-[var(--border)] bg-white/70 py-3 pl-11 pr-4 text-sm outline-none transition focus:border-[var(--apple-blue)] focus:ring-4 focus:ring-blue-500/10" />
+      <div className="grid gap-3 xl:grid-cols-[240px_1fr_280px]">
+        <SurfaceCard title="volumes" sub={`${months.length}`} padded={false}>
+          {months.length === 0 && <p className="p-4 font-mono text-xs text-[var(--term-muted)]">No statements uploaded yet.</p>}
+          {months.map((m) => {
+            const txs = transactions.filter(t => getMonthKey(t.transaction_date) === m);
+            const expense = txs.filter(t => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0);
+            const income = txs.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0);
+            const active = m === activeMonth && !isGlobalMode;
+            return (
+              <button key={m} onClick={() => { setSelectedMonth(m); setGlobalSearch(""); }} className="block w-full border-b border-[var(--term-border)] px-3 py-3 text-left transition hover:bg-[var(--term-panel-2)]" style={{ borderLeft: active ? "2px solid var(--term-accent)" : "2px solid transparent", background: active ? "var(--term-panel-2)" : "transparent" }}>
+                <div className="flex justify-between font-mono text-xs uppercase"><span className="text-[var(--term-fg)]">{formatMonthLabel(m)}</span><span className="text-[var(--term-muted)]">{txs.length}t</span></div>
+                <div className="mt-1 flex justify-between font-mono text-[10px] text-[var(--term-secondary)]"><span>OUT {plainCurrency(expense)}</span><span className="text-[var(--term-pos)]">IN {plainCurrency(income)}</span></div>
+              </button>
+            );
+          })}
+        </SurfaceCard>
+
+        <div className="space-y-3">
+          <SurfaceCard title="filter" compact>
+            <div className="flex flex-col gap-2 lg:flex-row">
+              <div className="relative flex-1">
+                <Search size={14} className="absolute left-2 top-1/2 -translate-y-1/2 text-[var(--term-muted)]" />
+                <input aria-label="Search current month" value={search} onChange={e => setSearch(e.target.value)} placeholder="grep description…" className="w-full border border-[var(--term-border)] bg-[var(--term-bg)] py-2 pl-8 pr-3 font-mono text-xs text-[var(--term-fg)] outline-none focus:border-[var(--term-accent)]" />
+              </div>
+              <div className="relative flex-1">
+                <Search size={14} className="absolute left-2 top-1/2 -translate-y-1/2 text-[var(--term-muted)]" />
+                <input aria-label="Search all months" value={globalSearch} onChange={e => setGlobalSearch(e.target.value)} placeholder="grep all volumes…" className="w-full border border-[var(--term-border)] bg-[var(--term-bg)] py-2 pl-8 pr-3 font-mono text-xs text-[var(--term-fg)] outline-none focus:border-[var(--term-accent)]" />
+              </div>
+              <button onClick={() => { setSearch(""); setGlobalSearch(""); }} className="border border-[var(--term-border)] bg-[var(--term-panel-2)] px-4 py-2 font-mono text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--term-secondary)]">RESET</button>
+            </div>
+          </SurfaceCard>
+
+          <SurfaceCard title={isGlobalMode ? "transactions.all" : `transactions.${activeMonth ?? "empty"}`} sub={`${rows.length} rows · sorted DESC`} padded={false}>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[760px] border-collapse font-mono text-[11px] font-variant-numeric tabular-nums">
+                <thead className="bg-[var(--term-panel-2)]"><tr className="text-[9px] uppercase tracking-[0.14em] text-[var(--term-muted)]">{(isGlobalMode ? ["MONTH", "DATE", "DESCRIPTION", "CATEGORY", "AMOUNT"] : ["DATE", "DESCRIPTION", "CATEGORY", "AMOUNT"]).map(h => <th key={h} className="px-3 py-2 text-left font-normal last:text-right">{h}</th>)}</tr></thead>
+                <tbody>
+                  {rows.length === 0 && <tr><td colSpan={isGlobalMode ? 5 : 4} className="px-3 py-10 text-center text-[var(--term-muted)]">No transactions found.</td></tr>}
+                  {rows.map(t => {
+                    const cat = t.categories?.name ?? "Other";
+                    const isDebit = t.amount < 0;
+                    return <tr key={t.id} className="border-t border-[var(--term-border)] hover:bg-[var(--term-panel-2)]">
+                      {isGlobalMode && <td className="px-3 py-2 text-[var(--term-accent)]">{formatMonthLabel(getMonthKey(t.transaction_date))}</td>}
+                      <td className="px-3 py-2 text-[var(--term-muted)]">{t.transaction_date}</td>
+                      <td className="max-w-xs truncate px-3 py-2 text-[var(--term-fg)]">{t.description}</td>
+                      <td className="px-3 py-2">{editingId === t.id ? <select autoFocus defaultValue={cat} onBlur={() => setEditingId(null)} onChange={e => handleCategoryChange(t.id, e.target.value)} className="border border-[var(--term-border)] bg-[var(--term-bg)] px-2 py-1 font-mono text-[10px] uppercase outline-none" style={{ color: (CAT_BADGE[cat] ?? CAT_BADGE.Other).text }}>{CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}</select> : <button onClick={() => setEditingId(t.id)} className="border px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.08em]" style={{ background: (CAT_BADGE[cat] ?? CAT_BADGE.Other).bg, color: (CAT_BADGE[cat] ?? CAT_BADGE.Other).text, borderColor: "var(--term-border)" }}>{cat}</button>}</td>
+                      <td className="px-3 py-2 text-right font-semibold" style={{ color: isDebit ? "var(--term-neg)" : "var(--term-pos)" }}>{isDebit ? "−" : "+"}{formatCurrency(t.amount)}</td>
+                    </tr>;
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </SurfaceCard>
+        </div>
+
+        <div className="space-y-3">
+          {!isGlobalMode && activeMonth && <div className="grid gap-3"><MetricTile label="rows" value={String(monthStats.count)} tone="blue" /><MetricTile label="out" value={shortCurrency(monthStats.expense)} detail="debits" tone="expense" /><MetricTile label="in" value={shortCurrency(monthStats.income)} detail="credits" tone="income" /></div>}
+          <SurfaceCard title="export" sub={activeMonth ?? "none"}>
+            <div className="space-y-2">
+              {["csv"].map(ext => <button key={ext} onClick={handleExport} disabled={!activeMonth || isGlobalMode || isExporting} className="flex w-full items-center justify-between border border-[var(--term-border)] bg-[var(--term-panel-2)] px-3 py-2 font-mono text-[11px] text-[var(--term-fg)] disabled:opacity-40"><span>statement-{activeMonth ?? "none"}.{ext}</span><span className="text-[var(--term-muted)]">↓</span></button>)}
+            </div>
+          </SurfaceCard>
         </div>
       </div>
-
-      {!isGlobalMode && activeMonth && <div className="mb-4 grid gap-3 sm:grid-cols-3"><MetricTile label="Total Expense" value={shortCurrency(monthStats.expense)} tone="expense" /><MetricTile label="Total Income" value={shortCurrency(monthStats.income)} tone="income" /><MetricTile label="Transactions" value={String(monthStats.count)} tone="blue" /></div>}
-
-      {!isGlobalMode && <div className="mb-4 flex gap-2 overflow-x-auto pb-1">{months.length === 0 && <p className="text-sm text-[var(--text-muted)]">No statements uploaded yet.</p>}{months.map(m => <button key={m} onClick={() => setSelectedMonth(m)} className="shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition" style={{ background: m === activeMonth ? "var(--text-primary)" : "rgba(255,255,255,.72)", color: m === activeMonth ? "#fff" : "var(--text-secondary)" }}>{formatMonthLabel(m)}</button>)}</div>}
-
-      {!isGlobalMode && <div className="relative mb-4"><Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" /><input aria-label="Search current month" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search current month…" className="w-full rounded-full border border-[var(--border)] bg-white/70 py-3 pl-11 pr-4 text-sm outline-none focus:border-[var(--apple-blue)] focus:ring-4 focus:ring-blue-500/10" /></div>}
-
-      <SurfaceCard className="overflow-hidden p-0">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[760px] text-sm">
-            <thead><tr className="border-b border-[var(--border)]">{(isGlobalMode ? ["Month", "Date", "Description", "Category", "Amount"] : ["Date", "Description", "Category", "Amount"]).map(h => <th key={h} className="px-5 py-4 text-left text-xs font-semibold text-[var(--text-muted)]">{h}</th>)}</tr></thead>
-            <tbody>
-              {rows.length === 0 && <tr><td colSpan={isGlobalMode ? 5 : 4} className="px-5 py-10 text-center text-sm text-[var(--text-muted)]">No transactions found.</td></tr>}
-              {rows.map(t => {
-                const cat = t.categories?.name ?? "Other";
-                const isDebit = t.amount < 0;
-                return <tr key={t.id} className="border-b border-[var(--border)] last:border-0 hover:bg-black/[0.025]">
-                  {isGlobalMode && <td className="px-5 py-4 text-xs font-semibold text-[var(--apple-blue)]">{formatMonthLabel(getMonthKey(t.transaction_date))}</td>}
-                  <td className="px-5 py-4 text-xs text-[var(--text-muted)]">{t.transaction_date}</td>
-                  <td className="max-w-xs truncate px-5 py-4 text-xs text-[var(--text-primary)]">{t.description}</td>
-                  <td className="px-5 py-4">{editingId === t.id ? <select autoFocus defaultValue={cat} onBlur={() => setEditingId(null)} onChange={e => handleCategoryChange(t.id, e.target.value)} className="rounded-full border px-3 py-1 text-xs outline-none" style={{ background: (CAT_BADGE[cat] ?? CAT_BADGE.Other).bg, color: (CAT_BADGE[cat] ?? CAT_BADGE.Other).text }}>{CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}</select> : <button onClick={() => setEditingId(t.id)} className="rounded-full px-3 py-1 text-xs font-medium transition hover:opacity-80" style={{ background: (CAT_BADGE[cat] ?? CAT_BADGE.Other).bg, color: (CAT_BADGE[cat] ?? CAT_BADGE.Other).text }}>{cat}</button>}</td>
-                  <td className="px-5 py-4 text-right text-xs font-semibold" style={{ color: isDebit ? "var(--expense-red)" : "var(--income-green)" }}>{isDebit ? "−" : "+"}{formatCurrency(t.amount)}</td>
-                </tr>;
-              })}
-            </tbody>
-          </table>
-        </div>
-      </SurfaceCard>
     </AppShell>
   );
 }

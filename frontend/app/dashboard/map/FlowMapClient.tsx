@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { GitBranch } from "lucide-react";
 import { createClient } from "@/lib/supabase";
-import { AppShell, PageHeader, SurfaceCard } from "@/components/apple-ui";
+import { AppShell, MetricTile, PageHeader, SurfaceCard } from "@/components/apple-ui";
 import { FlowSankey } from "@/components/FlowSankey";
 import { FlowFilters } from "@/components/FlowFilters";
 import { TransactionDrilldown } from "@/components/TransactionDrilldown";
@@ -16,6 +16,7 @@ function defaultFilters(): FlowParams {
   start.setDate(start.getDate() - 90);
   return { startDate: start.toISOString().slice(0, 10), endDate: end.toISOString().slice(0, 10), minAmount: 0 };
 }
+function fmt(n: number): string { if (n >= 1_000_000) return `Rp ${(n / 1_000_000).toFixed(1)}jt`; if (n >= 1_000) return `Rp ${(n / 1_000).toFixed(0)}rb`; return `Rp ${Math.round(n)}`; }
 
 export default function FlowMapClient({ initialTransactions }: { initialTransactions: Transaction[]; }) {
   const [filters, setFilters] = useState<FlowParams>(defaultFilters);
@@ -41,26 +42,44 @@ export default function FlowMapClient({ initialTransactions }: { initialTransact
   useEffect(() => { loadFlows(defaultFilters()); }, [loadFlows]);
   function handleApplyFilters(newFilters: FlowParams) { setFilters(newFilters); loadFlows(newFilters); }
   const hasData = !loading && !error && flowData && flowData.nodes.length > 0;
+  const totalOut = flowData?.links.reduce((sum, link) => sum + link.value, 0) ?? 0;
 
   return (
     <AppShell>
-      <PageHeader title="Flow Map" eyebrow="Visualize where your money goes" />
+      <PageHeader title="Flow Map" eyebrow="visualize cashflow graph" />
       <FlowFilters filters={filters} onApply={handleApplyFilters} />
 
-      <SurfaceCard className="mt-5">
-        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
-            <div className="grid h-10 w-10 place-items-center rounded-2xl bg-[var(--text-primary)] text-white"><GitBranch size={17} /></div>
-            <div><h3 className="text-base font-semibold tracking-[-0.03em]">Category flow</h3><p className="text-xs text-[var(--text-muted)]">Click flow to inspect transactions</p></div>
-          </div>
-          {flowData && <p className="text-xs text-[var(--text-muted)]">{flowData.metadata.total_transactions} transactions · {flowData.metadata.period}</p>}
+      <div className="mt-3 grid gap-3 xl:grid-cols-[1fr_300px]">
+        <div className="space-y-3">
+          <SurfaceCard title="sankey.cashflow" sub={flowData ? `${flowData.nodes.length} nodes · ${flowData.links.length} edges` : "loading"} action={<GitBranch size={14} className="text-[var(--term-accent)]" />}>
+            {loading && <div className="h-80 shimmer" />}
+            {!loading && error && <div className="flex h-72 flex-col items-center justify-center gap-3"><p className="font-mono text-xs text-[var(--term-muted)]">{error}</p><button onClick={() => loadFlows(filters)} className="border border-[var(--term-accent)] px-4 py-2 font-mono text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--term-accent)]">Retry</button></div>}
+            {!loading && !error && flowData && flowData.nodes.length === 0 && <div className="flex h-72 items-center justify-center"><p className="font-mono text-xs text-[var(--term-muted)]">No spending transactions in selected period.</p></div>}
+            {hasData && <div className="overflow-x-auto bg-[var(--term-bg)] p-3"><FlowSankey nodes={flowData!.nodes} links={flowData!.links} onLinkClick={(source, target) => setSelectedLink({ source, target })} width={880} height={460} /></div>}
+          </SurfaceCard>
         </div>
 
-        {loading && <div className="h-80 rounded-[24px] shimmer" />}
-        {!loading && error && <div className="flex h-72 flex-col items-center justify-center gap-3"><p className="text-sm text-[var(--text-muted)]">{error}</p><button onClick={() => loadFlows(filters)} className="rounded-full bg-[var(--apple-blue)] px-4 py-2 text-sm font-semibold text-white">Retry</button></div>}
-        {!loading && !error && flowData && flowData.nodes.length === 0 && <div className="flex h-72 items-center justify-center"><p className="text-sm text-[var(--text-muted)]">No spending transactions in selected period.</p></div>}
-        {hasData && <div className="overflow-x-auto rounded-[24px] bg-white/55 p-4"><FlowSankey nodes={flowData!.nodes} links={flowData!.links} onLinkClick={(source, target) => setSelectedLink({ source, target })} width={880} height={460} /></div>}
-      </SurfaceCard>
+        <div className="space-y-3">
+          <div className="grid gap-3">
+            <MetricTile label="nodes" value={String(flowData?.nodes.length ?? 0)} tone="blue" />
+            <MetricTile label="edges" value={String(flowData?.links.length ?? 0)} tone="income" />
+            <MetricTile label="outflow" value={fmt(totalOut)} tone="expense" />
+          </div>
+          <SurfaceCard title="edges" sub="click to drill">
+            <table className="w-full border-collapse font-mono text-[11px] font-variant-numeric tabular-nums">
+              <tbody>
+                {(flowData?.links ?? []).slice(0, 10).map((link, i) => (
+                  <tr key={`${link.source}-${link.target}-${i}`} className="border-t border-[var(--term-border)] first:border-0">
+                    <td className="py-1.5 text-[var(--term-fg)]">{link.target.toUpperCase()}</td>
+                    <td className="py-1.5 text-right text-[var(--term-accent)]">{fmt(link.value)}</td>
+                  </tr>
+                ))}
+                {!flowData?.links.length && <tr><td className="py-4 text-[var(--term-muted)]">No edges loaded.</td></tr>}
+              </tbody>
+            </table>
+          </SurfaceCard>
+        </div>
+      </div>
 
       {selectedLink && <TransactionDrilldown transactions={initialTransactions} source={selectedLink.source} target={selectedLink.target} startDate={filters.startDate} endDate={filters.endDate} onClose={() => setSelectedLink(null)} />}
     </AppShell>

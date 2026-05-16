@@ -76,43 +76,33 @@ export function UploadForm({ onSuccess }: UploadFormProps) {
   }
 
   return (
-    <SurfaceCard>
-      <div className="mb-4 flex items-center justify-between">
-        <div>
-          <h3 className="text-base font-semibold tracking-[-0.03em]">Upload e-Statement</h3>
-          <p className="mt-1 text-xs text-[var(--text-muted)]">PDF, password optional</p>
-        </div>
-        <div className="grid h-9 w-9 place-items-center rounded-2xl bg-[var(--apple-blue)] text-white">
-          <Upload size={16} />
-        </div>
-      </div>
-
+    <SurfaceCard title="upload.statement" sub="PDF parser">
       <form onSubmit={handleSubmit} className="space-y-3">
         <div
           onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
           onDragLeave={() => setDragging(false)}
           onDrop={onDrop}
           onClick={() => inputRef.current?.click()}
-          className="relative flex cursor-pointer flex-col items-center justify-center rounded-[24px] border border-dashed px-4 py-7 text-center transition"
+          className="relative flex cursor-pointer flex-col items-center justify-center border border-dashed px-4 py-7 text-center transition"
           style={{
-            borderColor: dragging ? "var(--apple-blue)" : "var(--border)",
-            background: dragging ? "rgba(0,122,255,0.08)" : "rgba(255,255,255,0.62)",
+            borderColor: dragging ? "var(--term-accent)" : "var(--term-border)",
+            background: dragging ? "rgba(198,247,81,0.08)" : "var(--term-bg)",
           }}
         >
           <input ref={inputRef} type="file" accept=".pdf" className="hidden" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
           {file ? (
-            <div className="flex items-center gap-2">
-              <FileText size={18} className="text-[var(--apple-blue)]" />
-              <span className="max-w-48 truncate text-sm font-medium">{file.name}</span>
-              <button type="button" onClick={(e) => { e.stopPropagation(); setFile(null); }} className="rounded-full p-1 hover:bg-black/[0.05]">
-                <X size={14} className="text-[var(--text-muted)]" />
+            <div className="flex items-center gap-2 font-mono text-xs">
+              <FileText size={18} className="text-[var(--term-accent)]" />
+              <span className="max-w-48 truncate text-[var(--term-fg)]">{file.name}</span>
+              <button type="button" onClick={(e) => { e.stopPropagation(); setFile(null); }} className="border border-[var(--term-border)] p-1 text-[var(--term-muted)] hover:text-[var(--term-neg)]">
+                <X size={14} />
               </button>
             </div>
           ) : (
             <>
-              <Upload size={23} className="mb-2 text-[var(--text-muted)]" />
-              <p className="text-sm font-medium text-[var(--text-secondary)]">Drop e-Statement PDF</p>
-              <p className="mt-1 text-xs text-[var(--text-muted)]">or click to browse</p>
+              <Upload size={23} className="mb-2 text-[var(--term-muted)]" />
+              <p className="font-mono text-xs font-semibold uppercase tracking-[0.1em] text-[var(--term-secondary)]">Drop e-Statement PDF</p>
+              <p className="mt-1 font-mono text-[10px] text-[var(--term-muted)]">or click to browse</p>
             </>
           )}
         </div>
@@ -122,19 +112,18 @@ export function UploadForm({ onSuccess }: UploadFormProps) {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           placeholder="Statement password (optional)"
-          className="w-full rounded-2xl border border-[var(--border)] bg-white/70 px-4 py-3 text-sm outline-none transition focus:border-[var(--apple-blue)] focus:ring-4 focus:ring-blue-500/10"
+          className="w-full border border-[var(--term-border)] bg-[var(--term-bg)] px-3 py-2 font-mono text-xs text-[var(--term-fg)] outline-none transition placeholder:text-[var(--term-muted)] focus:border-[var(--term-accent)]"
         />
 
         {message && (
-          <p className="rounded-2xl px-3 py-2 text-xs" style={{
-            background: status === "error" ? "#fff1f0" : "#ecfdf3",
-            color: status === "error" ? "var(--expense-red)" : "var(--income-green)",
+          <p className="border px-3 py-2 font-mono text-xs" style={{
+            borderColor: status === "error" ? "var(--term-neg)" : "var(--term-pos)",
+            color: status === "error" ? "var(--term-neg)" : "var(--term-pos)",
           }}>{message}</p>
         )}
 
         <button type="submit" disabled={!file || status === "uploading"}
-          className="flex w-full items-center justify-center gap-2 rounded-full py-3 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:bg-[#c7c7cc]"
-          style={{ background: !file || status === "uploading" ? "#c7c7cc" : "var(--apple-blue)" }}>
+          className="flex w-full items-center justify-center gap-2 bg-[var(--term-accent)] py-2.5 font-mono text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--term-bg)] transition disabled:cursor-not-allowed disabled:bg-[var(--term-grid)] disabled:text-[var(--term-muted)]">
           {status === "uploading" ? <><Loader2 size={15} className="animate-spin" /> Processing…</> : "Process Statement"}
         </button>
       </form>
