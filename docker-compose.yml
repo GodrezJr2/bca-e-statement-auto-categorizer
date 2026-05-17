@@ -9,7 +9,10 @@ services:
     environment:
       - SUPABASE_URL=${SUPABASE_URL:-https://your-project.supabase.co}
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY:-your-service-role-key}
-      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - LLM_BASE_URL=${LLM_BASE_URL:-https://openrouter.ai/api/v1}
+      - LLM_API_KEY=${LLM_API_KEY:-}
+      - LLM_MODEL=${LLM_MODEL:-}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
       # Allow both the local frontend container and the browser on your LAN.
       # Set SERVER_IP to your home server's local IP, e.g. 192.168.1.10
       # Set CORS_ORIGINS explicitly in .env, e.g.:

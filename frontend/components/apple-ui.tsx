@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { BarChart2, ChevronRight, FileText, GitBranch, LayoutDashboard, LogOut, Menu, Upload, X } from "lucide-react";
-import { useState } from "react";
+import { BarChart2, ChevronRight, FileText, GitBranch, LayoutDashboard, LogOut, Menu, Moon, Sun, Upload, X } from "lucide-react";
+import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 
@@ -33,6 +33,30 @@ function toneColor(tone?: string) {
     warn: "var(--term-warn)",
     muted: "var(--term-muted)",
   }[tone ?? "fg"] ?? "var(--term-fg)";
+}
+
+export function ThemeToggle() {
+  const [theme, setTheme] = useState<"dark" | "light">("light");
+
+  useEffect(() => {
+    const saved = localStorage.getItem("theme") === "dark" ? "dark" : "light";
+    setTheme(saved);
+    document.documentElement.setAttribute("data-theme", saved);
+  }, []);
+
+  function toggleTheme() {
+    const next = theme === "dark" ? "light" : "dark";
+    setTheme(next);
+    localStorage.setItem("theme", next);
+    document.documentElement.setAttribute("data-theme", next);
+  }
+
+  return (
+    <button onClick={toggleTheme} className="flex items-center gap-2 border border-[var(--term-border)] px-3 py-1.5 font-mono text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--term-muted)] transition hover:border-[var(--term-accent)] hover:text-[var(--term-accent)]" title="Toggle light/dark mode">
+      {theme === "dark" ? <Moon size={13} /> : <Sun size={13} />}
+      {theme}
+    </button>
+  );
 }
 
 export function SurfaceCard({
@@ -217,6 +241,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
           <div className="flex-1" />
           <div className="hidden md:block"><NavLinks /></div>
+          <div className="hidden md:block"><ThemeToggle /></div>
           <Link href="/dashboard#upload" className="hidden items-center gap-2 border border-[var(--term-border)] px-3 py-1.5 font-mono text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--term-accent)] transition hover:border-[var(--term-accent)] md:flex">
             <Upload size={13} /> upload
           </Link>
@@ -240,6 +265,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <div className="mb-8 font-mono text-sm font-bold tracking-[0.16em] text-[var(--term-accent)]">LEMBAR<span className="text-[var(--term-fg)]">/TERM</span></div>
             <NavLinks onNav={() => setOpen(false)} />
             <div className="mt-6 flex flex-col gap-2">
+              <ThemeToggle />
               <Link href="/dashboard#upload" onClick={() => setOpen(false)} className="flex items-center gap-2 border border-[var(--term-border)] px-3 py-2 font-mono text-[11px] uppercase tracking-[0.1em] text-[var(--term-accent)]">
                 <Upload size={13} /> Upload Statement
               </Link>

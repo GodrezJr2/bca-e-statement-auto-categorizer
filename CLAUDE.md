@@ -48,10 +48,10 @@ Backend reads `backend/.env` via `python-dotenv`. Required runtime variables inc
 
 - `SUPABASE_URL`
 - `SUPABASE_SERVICE_ROLE_KEY`
-- `OPENROUTER_API_KEY` for LLM fallback categorization in `services/categorizer.py`
+- `LLM_BASE_URL` for OpenAI-compatible LLM endpoint, e.g. self-hosted 9router `/v1` URL
+- `LLM_API_KEY` for that endpoint; falls back to `OPENROUTER_API_KEY` for legacy direct OpenRouter mode
+- `LLM_MODEL` optional; when set, categorizer calls only that model/9router combo alias. When unset, it uses the legacy OpenRouter fallback chain.
 - `CORS_ORIGINS` optional; defaults to `*` in `backend/main.py`
-
-`backend/.env.example` still lists older `LLM_PROVIDER`, `GEMINI_API_KEY`, and `OPENAI_API_KEY` names, but current categorizer code uses OpenRouter.
 
 Frontend uses:
 
@@ -75,7 +75,7 @@ Statement upload flow:
 1. Validate JWT, rate limit uploads in memory, read PDF bytes without writing to disk.
 2. Validate MIME type, `%PDF-` magic bytes, and 10 MB size limit.
 3. `services/pdf_parser.py` decrypts optional password-protected BCA PDF using `pikepdf`, extracts rows with `pdfplumber`, and returns signed amounts where debits are negative.
-4. `services/categorizer.py` applies keyword rules first, then falls back to OpenRouter chat completions for unknown descriptions.
+4. `services/categorizer.py` applies keyword rules first, then calls an OpenAI-compatible chat completions endpoint for unknown descriptions. Set `LLM_MODEL=UnliCombo` when routing through 9router-managed fallback.
 5. Existing transactions for uploaded months are deleted for that user, then fresh categorized rows are inserted.
 
 Flow map data is split between `routers/flows.py` for auth/date validation/Supabase query and `services/flow_aggregator.py` for pure aggregation. Credits are ignored; debit totals become `Income -> <category>` links.

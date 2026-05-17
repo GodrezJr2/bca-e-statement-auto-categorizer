@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowRight, FileText, LockKeyhole, Sparkles } from "lucide-react";
-import { HeroFinanceCard, SurfaceCard } from "@/components/apple-ui";
+import { HeroFinanceCard, SurfaceCard, ThemeToggle } from "@/components/apple-ui";
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 
 export default async function RootPage() {
@@ -17,9 +17,12 @@ export default async function RootPage() {
             <p className="font-mono text-sm font-bold tracking-[0.16em] text-[var(--term-accent)]">LEMBAR<span className="text-[var(--term-fg)]">/TERM</span></p>
             <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--term-muted)]">terminal finance workspace</p>
           </div>
-          <Link href="/login" className="border border-[var(--term-border)] px-4 py-2 font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--term-fg)] transition hover:border-[var(--term-accent)] hover:text-[var(--term-accent)]">
-            Sign in
-          </Link>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <Link href="/login" className="border border-[var(--term-border)] px-4 py-2 font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--term-fg)] transition hover:border-[var(--term-accent)] hover:text-[var(--term-accent)]">
+              Sign in
+            </Link>
+          </div>
         </nav>
 
         <section className="grid items-center gap-10 lg:grid-cols-[1fr_0.9fr]">

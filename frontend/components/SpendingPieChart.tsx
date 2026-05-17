@@ -34,7 +34,11 @@ export function SpendingPieChart({ data }: { data: ChartEntry[] }) {
         <text x="50%" y="51%" textAnchor="middle" dominantBaseline="middle" style={{ fontSize: "14px", fontWeight: 650, fill: "var(--term-fg)", fontFamily: "var(--font-mono)" }}>
           {(total / 1000000).toFixed(1)}jt
         </text>
-        <Tooltip formatter={(v) => [`Rp ${Number(v).toLocaleString("id-ID")}`, ""]} contentStyle={{ borderRadius: 0, border: "1px solid var(--term-border)", background: "var(--term-panel)", color: "var(--term-fg)", fontFamily: "var(--font-mono)", fontSize: 12 }} />
+        <Tooltip
+          formatter={(v) => [`Rp ${Number(v).toLocaleString("id-ID")}`, ""]}
+          contentStyle={{ borderRadius: 0, border: "1px solid var(--term-border)", background: "var(--term-panel)", color: "var(--term-fg)", fontFamily: "var(--font-mono)", fontSize: 12 }}
+          labelStyle={{ color: "var(--term-fg)", fontFamily: "var(--font-mono)" }}
+          itemStyle={{ color: "var(--term-fg)", fontFamily: "var(--font-mono)" }} />
         <Legend content={<CustomLegend />} />
       </PieChart>
     </ResponsiveContainer>

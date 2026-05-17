@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { AuthVisual } from "@/components/apple-ui";
+import { AuthVisual, ThemeToggle } from "@/components/apple-ui";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -34,6 +34,7 @@ export default function LoginPage() {
   return (
     <main className="grid min-h-screen items-center gap-10 bg-[var(--term-bg)] px-5 py-8 lg:grid-cols-[0.9fr_1.1fr] lg:px-16">
       <section className="term-panel mx-auto w-full max-w-md p-7">
+        <div className="mb-4 flex justify-end"><ThemeToggle /></div>
         <Link href="/" className="mb-10 block border-b border-[var(--term-border)] pb-5">
           <p className="font-mono text-sm font-bold tracking-[0.16em] text-[var(--term-accent)]">LEMBAR<span className="text-[var(--term-fg)]">/TERM</span></p>
           <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--term-muted)]">operator login</p>

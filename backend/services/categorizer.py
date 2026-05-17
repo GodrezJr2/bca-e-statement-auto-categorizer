@@ -12,15 +12,16 @@ _logger = logging.getLogger(__name__)
 _ENV_PATH = Path(__file__).resolve().parent.parent / ".env"
 load_dotenv(dotenv_path=_ENV_PATH)
 
-_OPENROUTER_API_KEY: str | None = os.environ.get("OPENROUTER_API_KEY")
+_LLM_BASE_URL: str = os.environ.get("LLM_BASE_URL", "https://openrouter.ai/api/v1")
+_LLM_API_KEY: str | None = os.environ.get("LLM_API_KEY") or os.environ.get("OPENROUTER_API_KEY")
+_LLM_MODEL: str | None = os.environ.get("LLM_MODEL")
 
-# Free models on OpenRouter — tried in order until one succeeds.
-# Verified working as of 2026-04 with this API key.
+# Fallback chain for legacy direct OpenRouter mode. Set LLM_MODEL for router-managed fallback.
 _MODEL_FALLBACK_CHAIN: list[str] = [
-    "openai/gpt-oss-120b:free",               # 120B, excellent JSON + instruction following
-    "nvidia/nemotron-3-super-120b-a12b:free", # 120B MoE, strong multilingual
-    "google/gemma-3-27b-it:free",             # Gemma 27B fallback
-    "meta-llama/llama-3.3-70b-instruct:free", # Llama 70B last resort
+    "openai/gpt-oss-120b:free",
+    "nvidia/nemotron-3-super-120b-a12b:free",
+    "google/gemma-3-27b-it:free",
+    "meta-llama/llama-3.3-70b-instruct:free",
 ]
 
 CATEGORIES = [
@@ -177,18 +178,18 @@ _BATCH_SIZE = 50
 _VALID = set(CATEGORIES)
 
 
-def _make_openrouter_client():
+def _make_llm_client():
     from openai import AsyncOpenAI
-    if not _OPENROUTER_API_KEY:
-        raise RuntimeError("OPENROUTER_API_KEY is not set. Add it to backend/.env.")
+    if not _LLM_API_KEY:
+        raise RuntimeError("LLM_API_KEY is not set. Add it to backend/.env.")
     return AsyncOpenAI(
-        base_url="https://openrouter.ai/api/v1",
-        api_key=_OPENROUTER_API_KEY,
+        base_url=_LLM_BASE_URL,
+        api_key=_LLM_API_KEY,
     )
 
 
 async def _call_model(descriptions: list[str], model: str) -> list[str]:
-    client = _make_openrouter_client()
+    client = _make_llm_client()
     response = await asyncio.wait_for(
         client.chat.completions.create(
             model=model,
@@ -219,7 +220,8 @@ async def _call_model(descriptions: list[str], model: str) -> list[str]:
 
 async def _call_with_fallback(descriptions: list[str]) -> list[str]:
     last_exc: Exception = RuntimeError("No models configured.")
-    for model in _MODEL_FALLBACK_CHAIN:
+    models = [_LLM_MODEL] if _LLM_MODEL else _MODEL_FALLBACK_CHAIN
+    for model in models:
         try:
             result = await _call_model(descriptions, model)
             if model != _MODEL_FALLBACK_CHAIN[0]:

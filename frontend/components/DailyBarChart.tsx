@@ -25,7 +25,10 @@ export function DailyBarChart({ data }: { data: ChartEntry[] }) {
         <Tooltip
           formatter={(v) => [`Rp ${Number(v).toLocaleString("id-ID")}`, "SPENT"]}
           labelFormatter={(label) => shortDate(String(label))}
-          contentStyle={{ borderRadius: 0, border: "1px solid var(--term-border)", background: "var(--term-panel)", color: "var(--term-fg)", fontFamily: "var(--font-mono)", fontSize: 12 }} />
+          cursor={{ fill: "rgba(198, 247, 81, 0.08)" }}
+          contentStyle={{ borderRadius: 0, border: "1px solid var(--term-border)", background: "var(--term-panel)", color: "var(--term-fg)", fontFamily: "var(--font-mono)", fontSize: 12 }}
+          labelStyle={{ color: "var(--term-fg)", fontFamily: "var(--font-mono)" }}
+          itemStyle={{ color: "var(--term-fg)", fontFamily: "var(--font-mono)" }} />
         <Bar dataKey="amount">
           {data.map((d, i) => <Cell key={i} fill={d.amount === max ? "var(--term-accent)" : "var(--term-grid)"} />)}
         </Bar>
